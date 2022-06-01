@@ -16,7 +16,7 @@ contract MyModule is Module {
     (address _owner, address _button) = abi.decode(initializeParams,(address, address));
 
     button = _button;
-    setAvatar(_owner);
+    setAvatar(_owner); 
     setTarget(_owner);
     transferOwnership(_owner); 
   }

@@ -21,7 +21,7 @@ libs-install :;
 	forge install --no-git OpenZeppelin/openzeppelin-contracts 
 	forge install --no-git contracts-upgradeable=OpenZeppelin/openzeppelin-contracts-upgradeable 
 	forge install --no-git gnosis/safe-contracts gnosis/zodiac
-	fix-zeppelin
+	make fix-zeppelin
 
 install: libs-install fix-zeppelin
 
