@@ -9,6 +9,8 @@ forge install
 forge test
 ```
 
+Check Makefile for more commands.
+
  * Use Hardhat:
 ```bash
 npm install
