@@ -15,9 +15,9 @@ remove :; rm -rf .gitmodules && rm -rf .git/modules/* && rm -rf lib && touch .gi
 
 # Install the Modules
 libs-install :;
-	forge install --no-git dapphub/ds-test
-	forge install --no-git foundry-rs/forge-std@v0.1.0
-	forge install --no-git rari-capital/solmate@v6
+	forge install --no-git dapphub/ds-test@9310e879db8ba3ea6d5c6489a579118fd264a3f5
+	forge install --no-git foundry-rs/forge-std@564510058ab3db01577b772c275e081e678373f2
+	forge install --no-git rari-capital/solmate@eaaccf88ac5290299884437e1aee098a96583d54
 	forge install --no-git OpenZeppelin/openzeppelin-contracts@v4.6.0
 	forge install --no-git contracts-upgradeable=OpenZeppelin/openzeppelin-contracts-upgradeable@v4.6.0 
 	forge install --no-git gnosis/safe-contracts@v1.3.0-libs.0 gnosis/zodiac@v1.0.10
