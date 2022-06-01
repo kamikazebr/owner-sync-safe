@@ -22,10 +22,10 @@ install :;
 	forge install --no-git contracts-upgradeable=OpenZeppelin/openzeppelin-contracts-upgradeable 
 	forge install --no-git gnosis/safe-contracts gnosis/zodiac
 
-mv:;
-	cd lib/openzeppelin-contracts && \
-	echo 1 && \
-	pwd
+fix-zeppelin:;
+	mv lib/contracts-upgradeable/contracts lib/openzeppelin-contracts/contracts-upgradeable && \
+	rm -rf lib/contracts-upgradeable \
+	echo "Done"
 
 # Update Dependencies
 update:; forge update
