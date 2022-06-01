@@ -4,7 +4,7 @@ pragma solidity >=0.8.0;
 contract MockSafe {
     address public module;
 
-    error NotAuthorized(address unacceptedAddress);
+    error ModuleNotAuthorized(address unacceptedAddress);
 
     receive() external payable {}
 
@@ -33,7 +33,7 @@ contract MockSafe {
         bytes calldata data,
         uint8 operation
     ) external returns (bool success) {
-        if (msg.sender != module) revert NotAuthorized(msg.sender);
+        if (msg.sender != module) revert ModuleNotAuthorized(msg.sender);
         if (operation == 1) (success, ) = to.delegatecall(data);
         else (success, ) = to.call{value: value}(data);
     }
