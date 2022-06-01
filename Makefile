@@ -14,13 +14,17 @@ clean  :; forge clean
 remove :; rm -rf .gitmodules && rm -rf .git/modules/* && rm -rf lib && touch .gitmodules && git add . && git commit -m "modules"
 
 # Install the Modules
-install :;
+libs-install :;
 	forge install --no-git dapphub/ds-test
 	forge install --no-git foundry-rs/forge-std
 	forge install --no-git rari-capital/solmate
 	forge install --no-git OpenZeppelin/openzeppelin-contracts 
 	forge install --no-git contracts-upgradeable=OpenZeppelin/openzeppelin-contracts-upgradeable 
 	forge install --no-git gnosis/safe-contracts gnosis/zodiac
+	fix-zeppelin
+
+install: libs-install fix-zeppelin
+
 
 fix-zeppelin:;
 	mv lib/contracts-upgradeable/contracts lib/openzeppelin-contracts/contracts-upgradeable && \
