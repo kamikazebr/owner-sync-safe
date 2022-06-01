@@ -4,7 +4,8 @@
 
  * Use Foundry: 
 ```bash
-forge install //or make install
+make install  //or make all
+forge install
 forge test
 ```
 
