@@ -1,15 +1,29 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0;
 
-contract MockSafe {
+import "@gnosis.pm/safe-contracts/contracts/base/OwnerManager.sol";
+
+interface ISafe {
+    function enableModule(address _module) external;
+}
+
+contract MockSafe is ISafe, OwnerManager {
     address public module;
+    
+    event log_address (address);
+    event log(string);
 
     error ModuleNotAuthorized(address unacceptedAddress);
-
+    
     receive() external payable {}
 
     function enableModule(address _module) external {
+        emit log_address(_module);
         module = _module;
+    }
+
+    function autodestroy() authorized public{
+        emit log("Booom!");
     }
 
     function exec(
@@ -37,4 +51,6 @@ contract MockSafe {
         if (operation == 1) (success, ) = to.delegatecall(data);
         else (success, ) = to.call{value: value}(data);
     }
+
+   
 }

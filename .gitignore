@@ -12,3 +12,8 @@ artifacts/
 
 #Hardhat plugin files
 typechain-types/
+# !broadcast/DeployFactory.s.sol/31337/run-latest.json
+broadcast/**
+.env
+
+.vscode/settings.json

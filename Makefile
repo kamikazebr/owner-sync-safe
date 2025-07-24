@@ -52,5 +52,96 @@ snapshot :; forge clean && forge snapshot --optimize --optimizer-runs 1000000
 # Fork Mainnet With Hardhat
 mainnet-fork :; npx hardhat node --fork ${ETH_MAINNET_RPC_URL}
 
+# Deploy Factory
+
+# Localhost
+deploy-factory-local: 
+	-forge script script/DeployFactory.s.sol:DeployFactoryScript \
+	--rpc-url http://127.0.0.1:8545 \
+	--sender 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 \
+	--unlocked \
+	--broadcast \
+	-vvvv
+
+deploy-factory-anvil: 
+	-forge script script/DeployFactory.s.sol:DeployFactoryScript \
+	--rpc-url http://127.0.0.1:8545 \
+	--private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+	--broadcast \
+	-vvvv
+
+# Deploy Factory Multichain
+
+# Base
+deploy-factory-multi-base: 
+	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
+	--rpc-url $(RPC_URL_BASE) \
+	--account pkf \
+	--sig "run(string)" 'base' \
+	--etherscan-api-key $(BASESCAN_API_KEY) \
+	--chain-id 8453 \
+	--broadcast \
+	--legacy \
+	--verify \
+	-vvv
+
+verify-factory-base: 
+	-forge verify-contract \
+  --rpc-url $(RPC_URL_BASE) \
+  0xc42e4af82969e757602E657D92829E9e2F06f6B3 \
+  /home/felipenovaesrocha/Projects/1Hive/gardens-zodiac/src
+OwnerModuleFactory.sol:OwnerModuleFactory \
+	--etherscan-api-key $(ETHERSCAN_API_KEY)
+
+verify-blockscout-base: 
+	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
+	--rpc-url $(RPC_URL_BASE) \
+	--sig "run(string)" 'base' \
+	--chain-id 8453 \
+	--account pkf \
+	--verifier blockscout \
+	--verifier-url https://base.blockscout.com/api/ \
+	--ffi \
+	--legacy \
+	--verify \
+	--via-ir \
+	-vvv \
+	--broadcast \
+	--slow
+
+# Add owner to all modules in Base
+addOwner: #make addOwner owner=0x1234 threshold=2
+	-forge script script/FactoryInteraction.s.sol:FactoryInteractionScript \
+	--rpc-url $(RPC_URL_BASE) \
+	--account pkf \
+	--sig "addSafeOwnerToAll(address,uint256)" $(owner) $(threshold) \
+	--chain-id 8453 \
+	--broadcast \
+	-vvvv
+
+# Get module for safe
+getModuleForSafe: #make getModuleForSafe safe=0x1234
+	-forge script script/FactoryInteraction.s.sol:FactoryInteractionScript \
+	--rpc-url $(RPC_URL_BASE) \
+	--account pkf \
+	--sig "getModuleForSafe(address)" $(safe) \
+	--chain-id 8453 \
+	--broadcast \
+	-vvvv
+
+# Base Sepolia
+deploy-factory-multi-basesep: 
+	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
+	--rpc-url $(RPC_URL_BASE_TESTNET) \
+	--account pkf \
+	--sig "run(string)" 'basesepolia' \
+	--etherscan-api-key $(BASESCAN_API_KEY) \
+	--chain-id 84532 \
+	--broadcast \
+	--legacy \
+	--verify \
+	-vvv
+
+
 # Rename all instances of this repo with the new repo name
 rename :; chmod +x ./scripts/* && ./scripts/rename.sh
