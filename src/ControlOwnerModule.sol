@@ -3,6 +3,7 @@ pragma solidity ^0.8.6;
 
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "forge-std/console.sol";
+import "./errors/SafeModuleErrors.sol";
 
 contract ControlOwnerModule is Module {
     // Mapeamento para armazenar configurações por Safe
@@ -49,8 +50,8 @@ contract ControlOwnerModule is Module {
      * @param _safe Endereço do Safe
      */
     function _configureForSafeInternal(address _safe) internal {
-        require(_safe != address(0), "COM:Invalid Safe address");
-        require(!safeConfig.isConfigured, "Safe already configured");
+        if (_safe == address(0)) revert InvalidSafeAddress();
+        if (safeConfig.isConfigured) revert SafeAlreadyConfigured();
 
         // Salvar configuração - inicializar campos individualmente
         safeConfig.isConfigured = true;
@@ -65,8 +66,8 @@ contract ControlOwnerModule is Module {
      */
     function configureForSafe() external {
         address _target = target;
-        require(_target != address(0), "COM:Invalid Safe address");
-        require(!safeConfig.isConfigured, "Safe already configured");
+        if (_target == address(0)) revert InvalidSafeAddress();
+        if (safeConfig.isConfigured) revert SafeAlreadyConfigured();
 
         _configureForSafeInternal(_target);
     }
@@ -77,13 +78,12 @@ contract ControlOwnerModule is Module {
      * @param threshold Novo threshold
      */
     function addSafeOwner(address newOwner, uint256 threshold) external {
-        require(msg.sender == owner(), "Only module owner can add owners");
+        if (msg.sender != owner()) revert OnlyModuleOwner();
         
         address safe = avatar;
-        require(safeConfig.isConfigured, "Safe not configured");
-        require(newOwner != address(0), "Invalid owner address");
-        require(newOwner != address(1), "Invalid owner address");
-        require(!safeConfig.isSafeOwner[newOwner], "Already a safe owner");
+        if (!safeConfig.isConfigured) revert SafeNotConfigured();
+        if (newOwner == address(0) || newOwner == address(1)) revert InvalidOwnerAddress();
+        if (safeConfig.isSafeOwner[newOwner]) revert AlreadySafeOwner();
         
         // Adicionar owner ao Safe
         (bool success, bytes memory data) = execAndReturnData(
@@ -93,7 +93,7 @@ contract ControlOwnerModule is Module {
             Enum.Operation.Call
         );
 
-        require(success, string(abi.encodePacked("Failed to add owner: ", string(data))));
+        if (!success) revert FailedToAddOwner(data);
 
         // Atualizar lista local de owners
         safeConfig.safeOwners.push(newOwner);
@@ -110,10 +110,10 @@ contract ControlOwnerModule is Module {
      */
     function removeSafeOwner(address prevOwner, address ownerToRemove, uint256 threshold) external {
         address safe = avatar;
-        require(safeConfig.isConfigured, "Safe not configured");
-        require(msg.sender == owner(), "Only module owner can remove owners");
-        require(ownerToRemove != address(0), "Invalid owner address");
-        require(safeConfig.isSafeOwner[ownerToRemove], "Not a safe owner");
+        if (!safeConfig.isConfigured) revert SafeNotConfigured();
+        if (msg.sender != owner()) revert OnlyModuleOwner();
+        if (ownerToRemove == address(0)) revert InvalidOwnerAddress();
+        if (!safeConfig.isSafeOwner[ownerToRemove]) revert NotSafeOwner();
         
         // Remover owner do Safe
         exec(
@@ -138,13 +138,12 @@ contract ControlOwnerModule is Module {
      */
     function replaceSafeOwner(address prevOwner, address oldOwner, address newOwner) external {
         address safe = avatar;
-        require(safeConfig.isConfigured, "Safe not configured");
-        require(msg.sender == owner(), "Only module owner can replace owners");
-        require(newOwner != address(0), "Invalid new owner address");
-        require(newOwner != address(1), "Invalid new owner address");
-        require(oldOwner != newOwner, "Same owner address");
-        require(safeConfig.isSafeOwner[oldOwner], "Old owner not found");
-        require(!safeConfig.isSafeOwner[newOwner], "New owner already exists");
+        if (!safeConfig.isConfigured) revert SafeNotConfigured();
+        if (msg.sender != owner()) revert OnlyModuleOwner();
+        if (newOwner == address(0) || newOwner == address(1)) revert InvalidOwnerAddress();
+        if (oldOwner == newOwner) revert SameOwnerAddress();
+        if (!safeConfig.isSafeOwner[oldOwner]) revert OldOwnerNotFound();
+        if (safeConfig.isSafeOwner[newOwner]) revert NewOwnerAlreadyExists();
         
         // Substituir owner no Safe
         exec(
@@ -168,10 +167,10 @@ contract ControlOwnerModule is Module {
      */
     function changeSafeThreshold(uint256 threshold) external {
         address safe = avatar;
-        require(safeConfig.isConfigured, "Safe not configured");
-        require(msg.sender == owner(), "Only module owner can change threshold");
-        require(threshold > 0, "Threshold must be greater than 0");
-        require(threshold <= safeConfig.safeOwners.length, "Threshold too high");
+        if (!safeConfig.isConfigured) revert SafeNotConfigured();
+        if (msg.sender != owner()) revert OnlyModuleOwner();
+        if (threshold == 0) revert ThresholdTooLow();
+        if (threshold > safeConfig.safeOwners.length) revert ThresholdTooHigh();
         
         exec(
             safe,
@@ -198,8 +197,8 @@ contract ControlOwnerModule is Module {
         Enum.Operation operation
     ) external {
         address safe = avatar;
-        require(safeConfig.isConfigured, "Safe not configured");
-        require(safeConfig.isSafeOwner[msg.sender], "Only safe owners can execute transactions");
+        if (!safeConfig.isConfigured) revert SafeNotConfigured();
+        if (!safeConfig.isSafeOwner[msg.sender]) revert OnlySafeOwners();
         
         exec(to, value, data, operation);
     }

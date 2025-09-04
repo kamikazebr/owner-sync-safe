@@ -85,6 +85,20 @@ deploy-factory-multi-base:
 	--verify \
 	-vvv
 
+# Deploy Factory v1.1.0 on Base (New Version)
+deploy-factory-v110-base: 
+	@echo "Deploying OwnerModuleFactory v1.1.0 to Base..."
+	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
+	--rpc-url $(RPC_URL_BASE) \
+	--account pkf \
+	--sig "run(string)" 'base-v1.1.0' \
+	--etherscan-api-key $(BASESCAN_API_KEY) \
+	--chain-id 8453 \
+	--broadcast \
+	--legacy \
+	--verify \
+	-vvv
+
 verify-factory-base: 
 	-forge verify-contract \
   --rpc-url $(RPC_URL_BASE) \
@@ -125,6 +139,16 @@ getModuleForSafe: #make getModuleForSafe safe=0x1234
 	--rpc-url $(RPC_URL_BASE) \
 	--account pkf \
 	--sig "getModuleForSafe(address)" $(safe) \
+	--chain-id 8453 \
+	--broadcast \
+	-vvvv
+
+# Get factory info
+getFactoryInfo: 
+	-forge script script/FactoryInteraction.s.sol:FactoryInteractionScript \
+	--rpc-url $(RPC_URL_BASE) \
+	--account pkf \
+	--sig "getFactoryInfo()" \
 	--chain-id 8453 \
 	--broadcast \
 	-vvvv

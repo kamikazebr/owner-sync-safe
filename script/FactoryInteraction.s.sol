@@ -37,4 +37,26 @@ contract FactoryInteractionScript is Script {
         console.log("Module for safe:", module);
         return module;
     }
+
+    function getFactoryInfo() external {
+        vm.startBroadcast();
+        OwnerModuleFactory factory = OwnerModuleFactory(factoryAddress);
+        
+        console.log("=== FACTORY INFO ===");
+        console.log("Factory Address:", factoryAddress);
+        console.log("Factory Version:", factory.getVersion());
+        console.log("Factory Owner:", factory.factoryOwner());
+        console.log("Module Template:", address(factory.moduleTemplate()));
+        console.log("Total Modules:", factory.getModuleCount());
+        
+        // Get network status
+        OwnerModuleFactory.NetworkInfo memory info = factory.getNetworkStatus();
+        console.log("Network Status:");
+        console.log("  Total Safes:", info.totalSafes);
+        console.log("  Active Modules:", info.activeModules);
+        console.log("  Chain ID:", info.chainId);
+        console.log("  Last Update:", info.lastUpdate);
+        
+        vm.stopBroadcast();
+    }
 } 

@@ -22,6 +22,7 @@ contract DeployFactoryMultiChain is Script {
         console.log("Factory deployed at:", address(factory));
         console.log("Factory owner:", factory.factoryOwner());
         console.log("Module template:", address(factory.moduleTemplate()));
+        console.log("Factory version:", factory.getVersion());
 
         vm.stopBroadcast();
         
@@ -37,7 +38,8 @@ contract DeployFactoryMultiChain is Script {
             "Network: ", network, "\n",
             "Factory: ", vm.toString(address(factory)), "\n",
             "Template: ", vm.toString(address(template)), "\n",
-            "Factory Owner: ", vm.toString(factory.factoryOwner()), "\n"
+            "Factory Owner: ", vm.toString(factory.factoryOwner()), "\n",
+            "Version: ", factory.getVersion(), "\n"
         ));
         console.log(deploymentData);
 
