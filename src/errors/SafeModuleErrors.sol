@@ -24,11 +24,11 @@ error OldOwnerNotFound();
 error NewOwnerAlreadyExists();
 error InvalidNewOwnerAddress();
 
-// ============ FACTORY ERRORS ============
+// ============ MANAGER ERRORS ============
 error ModuleAlreadyExists();
 error InvalidSafeContract();
 error NoModuleForSafe();
-error OnlyFactoryOwner();
+error OnlyManagerOwner();
 error InvalidModuleAddress();
 error NoModuleFound();
 error NoCalls();

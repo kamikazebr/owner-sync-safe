@@ -2,13 +2,13 @@
 pragma solidity ^0.8.6;
 
 import "forge-std/Test.sol";
-import "../src/ControlOwnerModule.sol";
+import "../src/ManagedSafeModule.sol";
 import "./helpers/SafeTestHelper.sol";
 import {ISafe} from "../src/interfaces/ISafe.sol";
 
-contract OwnerControlModuleTest is SafeTestHelper {
+contract ManagedSafeModuleTest is SafeTestHelper {
     GnosisSafe safe;
-    ControlOwnerModule module;
+    ManagedSafeModule module;
     
     address owner0;
     address owner1;
@@ -36,7 +36,7 @@ contract OwnerControlModuleTest is SafeTestHelper {
         owners[0] = owner0;
         safe = createSafeWithNonce(owners, 1, 1);
         
-        module = new ControlOwnerModule();
+        module = new ManagedSafeModule();
         module.setUp("");
         module.setAvatar(address(safe));
         module.setTarget(address(safe));

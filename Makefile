@@ -153,6 +153,26 @@ getFactoryInfo:
 	--broadcast \
 	-vvvv
 
+# Gnosis
+deploy-factory-multi-gnosis: 
+	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
+	--rpc-url $(RPC_URL_GNOSIS) \
+	--account pkf \
+	--sig "run(string)" 'gnosis' \
+	--etherscan-api-key $(ETHERSCAN_API_KEY) \
+	--chain-id 100 \
+	--broadcast \
+	--legacy \
+	--verify \
+	-vvv
+
+verify-factory-gnosis: 
+	-forge verify-contract \
+	--rpc-url $(RPC_URL_GNOSIS) \
+	[CONTRACT_ADDRESS] \
+	/home/felipenovaesrocha/Projects/1Hive/gardens-zodiac/src/SafeModuleManager.sol:SafeModuleManager \
+	--etherscan-api-key $(ETHERSCAN_API_KEY)
+
 # Base Sepolia
 deploy-factory-multi-basesep: 
 	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \

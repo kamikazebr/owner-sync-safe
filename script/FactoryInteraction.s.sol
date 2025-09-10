@@ -2,11 +2,11 @@
 pragma solidity ^0.8.6;
 
 import "forge-std/Script.sol";
-import "../src/OwnerModuleFactory.sol";
+import "../src/SafeModuleManager.sol";
 
 contract FactoryInteractionScript is Script {
     
-    // Endereço do OwnerModuleFactory na Base
+    // Endereço do SafeModuleManager na Base
     address payable factoryAddress = payable(0xc42e4af82969e757602E657D92829E9e2F06f6B3);
         
 
@@ -18,8 +18,8 @@ contract FactoryInteractionScript is Script {
         console.log("New owner:", newOwner);
         console.log("Threshold:", threshold);
         
-        // Instanciar a factory
-        OwnerModuleFactory factory = OwnerModuleFactory(factoryAddress);
+        // Instanciar o manager
+        SafeModuleManager factory = SafeModuleManager(factoryAddress);
         
         // Chamar a função para adicionar owner em todos os módulos
         factory.addSafeOwnerToAll(newOwner, threshold);
@@ -31,7 +31,7 @@ contract FactoryInteractionScript is Script {
 
     function getModuleForSafe(address safe) external returns (address) {
         vm.startBroadcast();
-        OwnerModuleFactory factory = OwnerModuleFactory(factoryAddress);
+        SafeModuleManager factory = SafeModuleManager(factoryAddress);
         address module = factory.getModuleForSafe(safe);
         vm.stopBroadcast();
         console.log("Module for safe:", module);
@@ -40,17 +40,17 @@ contract FactoryInteractionScript is Script {
 
     function getFactoryInfo() external {
         vm.startBroadcast();
-        OwnerModuleFactory factory = OwnerModuleFactory(factoryAddress);
+        SafeModuleManager factory = SafeModuleManager(factoryAddress);
         
         console.log("=== FACTORY INFO ===");
         console.log("Factory Address:", factoryAddress);
         console.log("Factory Version:", factory.getVersion());
-        console.log("Factory Owner:", factory.factoryOwner());
+        console.log("Manager Owner:", factory.managerOwner());
         console.log("Module Template:", address(factory.moduleTemplate()));
         console.log("Total Modules:", factory.getModuleCount());
         
         // Get network status
-        OwnerModuleFactory.NetworkInfo memory info = factory.getNetworkStatus();
+        SafeModuleManager.NetworkInfo memory info = factory.getNetworkStatus();
         console.log("Network Status:");
         console.log("  Total Safes:", info.totalSafes);
         console.log("  Active Modules:", info.activeModules);

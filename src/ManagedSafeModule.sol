@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.6;
 
-import "@gnosis.pm/zodiac/contracts/core/Module.sol";
-import "forge-std/console.sol";
+import {Module, Enum} from "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "./errors/SafeModuleErrors.sol";
 
-contract ControlOwnerModule is Module {
+contract ManagedSafeModule is Module {
     // Mapeamento para armazenar configurações por Safe
     string public constant VERSION = "0.0.1";
     
@@ -30,9 +29,9 @@ contract ControlOwnerModule is Module {
 
     /**
      * @dev Implementação da função setUp do FactoryFriendly
-     * @param initializeParams Parâmetros de inicialização (owner, safe)
+     * @param _initializeParams Parâmetros de inicialização (owner, safe)
      */
-    function setUp(bytes memory initializeParams) public override initializer {
+    function setUp(bytes memory _initializeParams) public override initializer {
         // Decodificar parâmetros: owner, safe
         // (address p_owner, address p_safe) = abi.decode(initializeParams, (address, address));
         
@@ -196,7 +195,6 @@ contract ControlOwnerModule is Module {
         bytes calldata data,
         Enum.Operation operation
     ) external {
-        address safe = avatar;
         if (!safeConfig.isConfigured) revert SafeNotConfigured();
         if (!safeConfig.isSafeOwner[msg.sender]) revert OnlySafeOwners();
         
@@ -206,7 +204,7 @@ contract ControlOwnerModule is Module {
 
 
     // Funções auxiliares para gerenciar a lista de owners
-    function removeFromSafeOwnersList(address safe, address ownerToRemove) internal {
+    function removeFromSafeOwnersList(address, address ownerToRemove) internal {
         address[] storage owners = safeConfig.safeOwners;
         for (uint i = 0; i < owners.length; i++) {
             if (owners[i] == ownerToRemove) {
@@ -217,7 +215,7 @@ contract ControlOwnerModule is Module {
         }
     }
 
-    function replaceInSafeOwnersList(address safe, address oldOwner, address newOwner) internal {
+    function replaceInSafeOwnersList(address, address oldOwner, address newOwner) internal {
         address[] storage owners = safeConfig.safeOwners;
         for (uint i = 0; i < owners.length; i++) {
             if (owners[i] == oldOwner) {
@@ -228,28 +226,16 @@ contract ControlOwnerModule is Module {
     }
 
     // Funções de consulta
-    function isModuleOwner(address account) external view returns (bool) {
-        return owner() == account;
-    }
-
     function isSafeOwner(address account) external view returns (bool) {
-        address safe = avatar;
         if (!safeConfig.isConfigured) return false;
         return safeConfig.isSafeOwner[account];
     }
 
     function getSafeOwners() external view returns (address[] memory) {
-        address safe = avatar;
         return safeConfig.safeOwners;
     }
 
-    function getSafeOwnerCount() external view returns (uint256) {
-        address safe = avatar;
-        return safeConfig.safeOwners.length;
-    }
-
     function getSafeThreshold() external view returns (uint256) {
-        address safe = avatar;
         return safeConfig.threshold;
     }
 
@@ -258,8 +244,6 @@ contract ControlOwnerModule is Module {
     }
 
     function isSafeConfigured() external view returns (bool) {
-        address safe = target;
-        console.log("safe", safe);
         return safeConfig.isConfigured;
     }
 } 

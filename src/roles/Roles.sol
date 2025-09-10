@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.6;
 
-import "@gnosis.pm/zodiac/contracts/core/Modifier.sol";
-import "./Permissions.sol";
+import {Modifier, Enum} from "@gnosis.pm/zodiac/contracts/core/Modifier.sol";
+import {Permissions, Role, ExecutionOptions, ParameterType, Comparison} from "./Permissions.sol";
 
 contract Roles is Modifier {
     address public multisend;
