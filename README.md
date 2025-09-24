@@ -1,41 +1,90 @@
-# <h1 align="center"> GardensV2 (Zodiac) </h1>
+# Owner Sync Safe
 
-### Getting Started
+UUPS upgradeable system for synchronizing Safe owners across multiple chains and Safes.
 
- * Use Foundry: 
+## Overview
+
+Owner Sync Safe provides a secure, upgradeable infrastructure for managing Safe owners across multiple chains. The system uses the UUPS (Universal Upgradeable Proxy Standard) pattern to enable future upgrades while maintaining state consistency.
+
+## Key Features
+
+- **UUPS Upgradeable**: Both manager and modules support secure upgrades
+- **Cross-Safe Operations**: Synchronize owners across multiple Safes
+- **Two-Step Ownership**: Enhanced security with `Ownable2Step` pattern
+- **Storage Gaps**: Future-proof storage layout for upgrades
+- **Comprehensive Testing**: Full test coverage for UUPS functionality
+
+## Architecture
+
+The system consists of two main components:
+
+1. **SafeModuleManager**: UUPS proxy that creates and manages all modules
+2. **ManagedSafeModule**: Individual UUPS modules for each Safe
+
+For detailed architecture information, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+
+## Documentation
+
+📚 **Complete documentation**: https://notes.felipenovaesrocha.xyz/s/gHyTdvBYj
+
+## Quick Start
+
+### Installation
+
 ```bash
-make install  //or make all
+# Install dependencies
+make install
 forge install
+```
+
+### Testing
+
+```bash
+# Run all tests
 forge test
+
+# Run specific UUPS tests
+forge test --match-contract "UUPS"
 ```
 
-Check Makefile for more commands.
+### Deployment
 
- * Use Hardhat:
 ```bash
-npm install
-npx hardhat test
+# Deploy UUPS system
+forge script script/DeployUUPS.s.sol --broadcast
+
+# Upgrade existing system
+forge script script/UpgradeUUPS.s.sol --broadcast
 ```
 
-### Features
+## Environment Setup
 
- * Write / run tests with either Hardhat or Foundry:
+1. Copy the environment template:
 ```bash
-forge test
-# or
-npx hardhat test
+cp .env.example .env
 ```
 
- * Use Hardhat's task framework
+2. Fill in your API keys and RPC URLs in `.env`
+
+## Development Commands
+
+See `Makefile` for all available commands:
+
 ```bash
-npx hardhat example
+make install     # Install dependencies
+make build       # Build contracts
+make test        # Run tests
+make deploy      # Deploy contracts
+make lint        # Run linter
 ```
 
- * Install libraries with Foundry which work with Hardhat.
-```bash
-forge install rari-capital/solmate # Already in this repo, just an example
-```
+## License
 
-### Notes
+This project is licensed under the AGPL-3.0 License - see the [LICENSE](LICENSE) file for details.
 
-Whenever you install new libraries using Foundry, make sure to update your `remappings.txt` file by running `forge remappings > remappings.txt`. This is required because we use `hardhat-preprocessor` and the `remappings.txt` file to allow Hardhat to resolve libraries you install with Foundry.
+## Security
+
+- All sensitive keys are excluded from version control
+- UUPS upgrade authorization prevents unauthorized upgrades
+- Two-step ownership transfer reduces ownership risks
+- Storage gaps protect against storage collision in upgrades
