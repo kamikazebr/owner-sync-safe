@@ -4,11 +4,12 @@ pragma solidity ^0.8.6;
 
 import {ManagedSafeModule} from "./ManagedSafeModule.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ISafe} from "./interfaces/ISafe.sol";
-import {Enum} from "@gnosis.pm/zodiac/contracts/core/Module.sol";
-import {InvalidSafeAddress, ModuleAlreadyExists, OnlyManagerOwner, InvalidOwnerAddress, InvalidNewOwnerAddress, SameOwnerAddress, ThresholdTooLow, NoModuleForSafe, InvalidModuleAddress, NoModuleFound} from "./errors/SafeModuleErrors.sol";
+import {Enum} from "zodiac/core/Module.sol";
+import {InvalidSafeAddress, ModuleAlreadyExists, OnlyManagerOwner, InvalidOwnerAddress, InvalidNewOwnerAddress, SameOwnerAddress, ThresholdTooLow, NoModuleForSafe, InvalidModuleAddress, NoModuleFound, AlreadyHasModuleForSafe} from "./errors/SafeModuleErrors.sol";
 
-contract SafeModuleManager {
+contract SafeModuleManager is Ownable2Step {
     
     // Version for migration tracking
     string public constant VERSION = "1.1.0";
@@ -37,19 +38,16 @@ contract SafeModuleManager {
         uint256 lastUpdate;
     }
     
-    // Manager owner (can be a Safe)
-    address public immutable managerOwner;
     
     // Internal function to validate manager owner access (more gas efficient than modifier)
     function _validateManagerOwner() internal view {
-        if (msg.sender != managerOwner) revert OnlyManagerOwner();
+        if (msg.sender != owner()) revert OnlyManagerOwner();
     }
     
     // Events
     event ModuleCreated(address indexed safe, address indexed module);
     event SafeRemovedFromNetwork(address indexed safe);
     event CrossModuleCall(address indexed caller, address[] modules, string functionName);
-    event FallbackCalled(address indexed caller, address[] modules, bytes data);
     event BatchOperationExecuted(address indexed caller, uint256 operationCount, uint256 successCount);
     event SafeValidated(address indexed safe, uint256 chainId, bool isValid);
     event NetworkStatusUpdated(uint256 totalSafes, uint256 activeModules, uint256 chainId);
@@ -57,10 +55,10 @@ contract SafeModuleManager {
     event SafeOperationError(address indexed safe, string operation, bytes errorData);
     event CrossModuleOperationSuccess(address indexed module, string operation);
     event CrossModuleOperationFailed(address indexed module, string operation, bytes errorData);
-    
+    event SafeToModuleSet(address indexed safe, address indexed module);
+    event ModuleDisabledOnSafe(address indexed safe, address indexed module);
+
     constructor(ManagedSafeModule _moduleTemplate) {
-        managerOwner = msg.sender;
-        
         moduleTemplate = _moduleTemplate;
     }
     
@@ -163,6 +161,24 @@ contract SafeModuleManager {
         // The Safe should call ISafe(safe).enableModule(module) directly
     }
 
+    /**
+     * @dev Set Safe-to-Module mapping manually
+     * Can only be called by the manager owner
+     * @param safe Safe address
+     * @param module Module address to associate with the Safe
+     */
+    function setSafeToModule(address safe, address module) external {
+        _validateManagerOwner();
+        if (safe == address(0)) revert InvalidSafeAddress();
+        if (module == address(0)) revert InvalidModuleAddress();
+        if (!isModule[module]) revert InvalidModuleAddress();
+        
+        safeToModule[safe] = module;
+        isModuleActive[module] = true;
+        emit SafeToModuleSet(safe, module);
+    }
+
+
 
     /**
      * @dev Validates if an address is a valid Safe contract
@@ -196,38 +212,24 @@ contract SafeModuleManager {
      * Can only be called by the Safe itself
      */
     function removeModuleForSafe() external {
+     
         address _safe = msg.sender;
         address module = safeToModule[_safe];
         if (module == address(0)) revert NoModuleForSafe();
         
         // Mark module as inactive
         isModuleActive[module] = false;
+
+        // Clear the mapping for consistency with hasModule()
+        safeToModule[_safe] = address(0);
+        emit SafeToModuleSet(_safe, address(0));
         
         // Safe must disable the module itself
-        // The Safe should call ISafe(safe).disableModule(prevModule, module) directly
+        _disableModuleOnSafe(_safe, module);
+
+        emit ModuleDisabledOnSafe(_safe, module);
     }
-    
-    /**
-     * @dev Fallback function to call functions in all modules
-     * @param data Function data to be called
-     */
-    fallback(bytes calldata data) external returns (bytes memory) {
-        _validateManagerOwner();
-        // Call the function in all modules
-        _callAllModules(data);
         
-        emit FallbackCalled(msg.sender, allModules, data);
-        
-        return "";
-    }
-    
-    /**
-     * @dev Receive function
-     */
-    receive() external payable {
-        // Factory can receive ETH
-    }
-    
     /**
      * @dev Add owner to all modules
      * @param newOwner Address of the new owner
@@ -435,6 +437,21 @@ contract SafeModuleManager {
     // ============ NETWORK MANAGEMENT SYSTEM ============
 
     /**
+     * @dev Internal function to disable a module on a Safe
+     * @param safe Address of the Safe
+     * @param module Address of the module to disable
+     */
+    function _disableModuleOnSafe(address safe, address module) internal {
+        try ISafe(safe).disableModule(address(0x1), module) {
+            // Success - module disabled
+            emit ModuleDisabledOnSafe(safe, module);
+        } catch (bytes memory errorData) {
+            // Log the error but continue with cleanup
+            emit SafeOperationError(safe, "disableModule", errorData);
+        }
+    }
+
+    /**
      * @dev Remove a Safe from the network completely
      * @param safe Address of the Safe to remove
      */
@@ -446,12 +463,7 @@ contract SafeModuleManager {
         if (module == address(0)) revert NoModuleFound();
         
         // Disable module on Safe
-        try ISafe(safe).disableModule(address(0x1), module) {
-            // Success - module disabled
-        } catch (bytes memory errorData) {
-            // Log the error but continue with cleanup
-            emit SafeOperationError(safe, "disableModule", errorData);
-        }
+        _disableModuleOnSafe(safe, module);
         
         // Remove from mappings
         delete safeToModule[safe];

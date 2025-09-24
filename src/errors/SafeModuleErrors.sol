@@ -32,6 +32,7 @@ error OnlyManagerOwner();
 error InvalidModuleAddress();
 error NoModuleFound();
 error NoCalls();
+error AlreadyHasModuleForSafe();
 
 // ============ OPERATION ERRORS ============
 error FailedToEnableModule();
@@ -42,3 +43,8 @@ error BatchOperationPartialFailure(uint256 successCount, uint256 totalCount);
 
 // ============ STATUS ERRORS ============
 error InvalidInstallationStatus(uint8 current, uint8 expected);
+
+// ============ SYNC ERRORS ============
+error SyncLimitTooHigh();
+error SyncLimitTooLow();
+error OperationRequiresFullSync();

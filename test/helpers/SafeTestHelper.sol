@@ -2,15 +2,15 @@
 pragma solidity ^0.8.6;
 
 import "forge-std/Test.sol";
-import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
-import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
-import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxy.sol";
+import "safe-contracts/contracts/Safe.sol";
+import "safe-contracts/contracts/proxies/SafeProxyFactory.sol";
+import "safe-contracts/contracts/proxies/SafeProxy.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 abstract contract SafeTestHelper is Test {
-    GnosisSafe public safeSingleton;
-    GnosisSafeProxyFactory public factory;
+    Safe public safeSingleton;
+    SafeProxyFactory public factory;
     
     // Constants for mainnet addresses (can be overridden)
     address public constant SAFE_FACTORY = 0xBba817F97F133b87b9b7F1FC0f2c56E9F68D2EdF;
@@ -23,15 +23,15 @@ abstract contract SafeTestHelper is Test {
     function setUpSafeHelpers() internal {
         // Try to use existing contracts first, then deploy if needed
         if (Address.isContract(SAFE_FACTORY)) {
-            factory = GnosisSafeProxyFactory(SAFE_FACTORY);
+            factory = SafeProxyFactory(SAFE_FACTORY);
         } else {
-            factory = new GnosisSafeProxyFactory();
+            factory = new SafeProxyFactory();
         }
         
         if (Address.isContract(SAFE_SINGLETON)) {
-            safeSingleton = GnosisSafe(payable(SAFE_SINGLETON));
+            safeSingleton = Safe(payable(SAFE_SINGLETON));
         } else {
-            safeSingleton = new GnosisSafe();
+            safeSingleton = new Safe();
         }
     }
 
@@ -39,9 +39,9 @@ abstract contract SafeTestHelper is Test {
         address[] memory owners,
         uint256 threshold,
         address payable fallbackHandler
-    ) internal returns (GnosisSafe safe) {
+    ) internal returns (Safe safe) {
         bytes memory initializer = abi.encodeWithSelector(
-            GnosisSafe.setup.selector,
+            Safe.setup.selector,
             owners,
             threshold,
             address(0), // to
@@ -52,8 +52,8 @@ abstract contract SafeTestHelper is Test {
             payable(0) // paymentReceiver
         );
 
-        GnosisSafeProxy proxy = factory.createProxy(address(safeSingleton), initializer);
-        safe = GnosisSafe(payable(proxy));
+        SafeProxy proxy = factory.createProxyWithNonce(address(safeSingleton), initializer, 0);
+        safe = Safe(payable(proxy));
         
         emit SafeCreated(address(safe), owners, threshold);
     }
@@ -61,27 +61,27 @@ abstract contract SafeTestHelper is Test {
     function createSafe(
         address[] memory owners,
         uint256 threshold
-    ) internal returns (GnosisSafe safe) {
+    ) internal returns (Safe safe) {
         return createSafeFallbackHandler(owners, threshold, payable(address(0)));
     }
 
 
     function createSafeWithOwners(
         address[] memory owners
-    ) internal returns (GnosisSafe safe) {
+    ) internal returns (Safe safe) {
         return createSafe(owners, owners.length);
     }
 
     function createSafeWithSingleOwner(
         address owner
-    ) internal returns (GnosisSafe safe) {
+    ) internal returns (Safe safe) {
         address[] memory owners = new address[](1);
         owners[0] = owner;
         return createSafe(owners, 1);
     }
 
     function executeSafeTransaction(
-        GnosisSafe safe,
+        Safe safe,
         address target,
         uint256 value,
         bytes memory data,
@@ -94,7 +94,7 @@ abstract contract SafeTestHelper is Test {
         bytes memory signatures
     ) internal returns (bool success) {
         bytes memory encodedTx = abi.encodeWithSelector(
-            GnosisSafe.execTransaction.selector,
+            Safe.execTransaction.selector,
             target,
             value,
             data,
@@ -112,7 +112,7 @@ abstract contract SafeTestHelper is Test {
     }
 
     function executeSafeTransaction(
-        GnosisSafe safe,
+        Safe safe,
         address target,
         uint256 value,
         bytes memory data,
@@ -134,7 +134,7 @@ abstract contract SafeTestHelper is Test {
     }
 
     function executeSafeTransaction(
-        GnosisSafe safe,
+        Safe safe,
         address target,
         bytes memory data
     ) internal returns (bool success) {
@@ -148,7 +148,7 @@ abstract contract SafeTestHelper is Test {
     }
 
     function signSafeTransaction(
-        GnosisSafe safe,
+        Safe safe,
         address target,
         uint256 value,
         bytes memory data,
@@ -179,7 +179,7 @@ abstract contract SafeTestHelper is Test {
     }
 
     function signSafeTransaction(
-        GnosisSafe safe,
+        Safe safe,
         address target,
         uint256 value,
         bytes memory data,
@@ -204,7 +204,7 @@ abstract contract SafeTestHelper is Test {
     }
 
     function signSafeTransaction(
-        GnosisSafe safe,
+        Safe safe,
         address target,
         bytes memory data,
         uint256 nonce,
@@ -240,7 +240,7 @@ abstract contract SafeTestHelper is Test {
 
     // Enhanced helper function similar to SafeSetup.sol
     function safeHelper(
-        GnosisSafe safe,
+        Safe safe,
         uint256 privateKey,
         address target,
         bytes memory data
@@ -249,7 +249,7 @@ abstract contract SafeTestHelper is Test {
     }
 
     function safeHelper(
-        GnosisSafe safe,
+        Safe safe,
         uint256 privateKey,
         address target,
         bytes memory data,
@@ -282,7 +282,7 @@ abstract contract SafeTestHelper is Test {
 
     // Helper to get transaction hash (similar to SafeSetup.sol)
     function getTransactionHash(
-        GnosisSafe safe,
+        Safe safe,
         address target,
         bytes memory data
     ) internal view returns (bytes32) {
@@ -305,9 +305,9 @@ abstract contract SafeTestHelper is Test {
         address[] memory owners,
         uint256 threshold,
         uint256 nonce
-    ) internal returns (GnosisSafe safe) {
+    ) internal returns (Safe safe) {
         bytes memory initializer = abi.encodeWithSelector(
-            GnosisSafe.setup.selector,
+            Safe.setup.selector,
             owners,
             threshold,
             address(0), // to
@@ -318,8 +318,8 @@ abstract contract SafeTestHelper is Test {
             payable(0) // paymentReceiver
         );
 
-        GnosisSafeProxy proxy = factory.createProxyWithNonce(address(safeSingleton), initializer, nonce);
-        safe = GnosisSafe(payable(proxy));
+        SafeProxy proxy = factory.createProxyWithNonce(address(safeSingleton), initializer, nonce);
+        safe = Safe(payable(proxy));
         
         emit SafeCreated(address(safe), owners, threshold);
     }

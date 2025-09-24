@@ -45,7 +45,7 @@ contract FactoryInteractionScript is Script {
         console.log("=== FACTORY INFO ===");
         console.log("Factory Address:", factoryAddress);
         console.log("Factory Version:", factory.getVersion());
-        console.log("Manager Owner:", factory.managerOwner());
+        console.log("Manager Owner:", factory.owner());
         console.log("Module Template:", address(factory.moduleTemplate()));
         console.log("Total Modules:", factory.getModuleCount());
         

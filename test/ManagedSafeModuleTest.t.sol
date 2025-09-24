@@ -7,7 +7,7 @@ import "./helpers/SafeTestHelper.sol";
 import {ISafe} from "../src/interfaces/ISafe.sol";
 
 contract ManagedSafeModuleTest is SafeTestHelper {
-    GnosisSafe safe;
+    Safe safe;
     ManagedSafeModule module;
     
     address owner0;

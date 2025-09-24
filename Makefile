@@ -166,6 +166,23 @@ deploy-factory-multi-gnosis:
 	--verify \
 	-vvv
 
+# Gnosis with ownership transfer
+deploy-factory-gnosis-transfer: #make deploy-factory-gnosis-transfer owner=0x1234
+	@if [ -z "$(owner)" ]; then \
+		echo "Error: owner parameter is required. Usage: make deploy-factory-gnosis-transfer owner=0x..."; \
+		exit 1; \
+	fi
+	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
+	--rpc-url $(RPC_URL_GNOSIS) \
+	--account pkf \
+	--sig "runWithOwnerTransfer(string,address)" 'gnosis' $(owner) \
+	--etherscan-api-key $(ETHERSCAN_API_KEY) \
+	--chain-id 100 \
+	--broadcast \
+	--legacy \
+	--verify \
+	-vvv
+
 verify-factory-gnosis: 
 	-forge verify-contract \
 	--rpc-url $(RPC_URL_GNOSIS) \

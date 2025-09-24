@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.30;
 
-import { Enum } from "../../lib/safe-contracts/contracts/common/Enum.sol";
+import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 
 interface ISafe {
     function getOwners() external view returns (address[] memory);
+    function getThreshold() external view returns (uint256);
     function nonce() external view returns (uint256);
     function setup(
         address[] calldata _owners,

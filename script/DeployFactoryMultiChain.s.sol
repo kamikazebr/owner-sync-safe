@@ -20,7 +20,7 @@ contract DeployFactoryMultiChain is Script {
         console.log("Deploying SafeModuleManager...");
         SafeModuleManager factory = new SafeModuleManager(template);
         console.log("Factory deployed at:", address(factory));
-        console.log("Manager owner:", factory.managerOwner());
+        console.log("Manager owner:", factory.owner());
         console.log("Module template:", address(factory.moduleTemplate()));
         console.log("Factory version:", factory.getVersion());
 
@@ -29,21 +29,59 @@ contract DeployFactoryMultiChain is Script {
         console.log("\n=== DEPLOY SUMMARY FOR", network, "===");
         console.log("Network:", network);
         console.log("Factory:", address(factory));
-        console.log("Manager Owner:", factory.managerOwner());
+        console.log("Manager Owner:", factory.owner());
         console.log("Module Template:", address(factory.moduleTemplate()));
         console.log("=====================================");
         
-        // Salvar endereços para uso posterior
-        string memory deploymentData = string(abi.encodePacked(
-            "Network: ", network, "\n",
-            "Factory: ", vm.toString(address(factory)), "\n",
-            "Template: ", vm.toString(address(template)), "\n",
-            "Manager Owner: ", vm.toString(factory.managerOwner()), "\n",
-            "Version: ", factory.getVersion(), "\n"
-        ));
-        console.log(deploymentData);
+        // Deployment summary (addresses logged above)
+        console.log("Deployment completed successfully!");
 
         // Escrever em arquivo para referência
         // vm.writeFile(string(abi.encodePacked("deployments/", network, ".txt")), deploymentData);
+    }
+
+    function runWithOwnerTransfer(string memory network, address newOwner) external {
+        if (newOwner == address(0)) revert("New owner cannot be zero address");
+        
+        console.log("Deploying Factory on network:", network);
+        console.log("New owner will be:", newOwner);
+        
+        vm.startBroadcast();
+
+        // 1. Deploy do template do módulo
+        console.log("Deploying ManagedSafeModule template...");
+        ManagedSafeModule template = new ManagedSafeModule();
+        console.log("Template deployed at:", address(template));
+
+        // 2. Deploy da factory
+        console.log("Deploying SafeModuleManager...");
+        SafeModuleManager factory = new SafeModuleManager(template);
+        console.log("Factory deployed at:", address(factory));
+        console.log("Manager owner:", factory.owner());
+        console.log("Module template:", address(factory.moduleTemplate()));
+        console.log("Factory version:", factory.getVersion());
+
+        // 3. Transfer ownership
+        console.log("\n=== TRANSFERRING OWNERSHIP ===");
+        console.log("Current owner:", factory.owner());
+        console.log("New owner:", newOwner);
+        
+        factory.transferOwnership(newOwner);
+        console.log("Ownership transfer initiated!");
+        console.log("Pending owner:", factory.pendingOwner());
+        console.log("New owner must call acceptOwnership() to complete the transfer");
+
+        vm.stopBroadcast();
+        
+        console.log("\n=== DEPLOY SUMMARY FOR", network, "===");
+        console.log("Network:", network);
+        console.log("Factory:", address(factory));
+        console.log("Current Owner:", factory.owner());
+        console.log("Pending Owner:", factory.pendingOwner());
+        console.log("Module Template:", address(factory.moduleTemplate()));
+        console.log("=====================================");
+        
+        console.log("Deployment and ownership transfer completed successfully!");
+        console.log("IMPORTANT: New owner must call acceptOwnership() to complete the transfer");
     }
 } 

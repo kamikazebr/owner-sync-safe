@@ -20,14 +20,14 @@ contract DeployFactoryScript is Script {
         console.log("Deploying SafeModuleManager...");
         SafeModuleManager factory = new SafeModuleManager(template);
         console.log("Factory deployed at:", address(factory));
-        console.log("Manager owner:", factory.managerOwner());
+        console.log("Manager owner:", factory.owner());
         console.log("Module template:", address(factory.moduleTemplate()));
 
         vm.stopBroadcast();
         
         console.log("\n=== DEPLOY SUMMARY ===");
         console.log("Factory:", address(factory));
-        console.log("Manager Owner:", factory.managerOwner());
+        console.log("Manager Owner:", factory.owner());
         console.log("Module Template:", address(factory.moduleTemplate()));
         console.log("=====================");
     }

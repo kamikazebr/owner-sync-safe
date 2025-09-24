@@ -9,9 +9,9 @@ import {ISafe} from "../src/interfaces/ISafe.sol";
 
 contract SafeModuleManagerTest is SafeTestHelper {
     SafeModuleManager moduleManager;
-    GnosisSafe safe1;
-    GnosisSafe safe2;
-    GnosisSafe safe3;
+    Safe safe1;
+    Safe safe2;
+    Safe safe3;
     
     address managerOwner;
     address owner1;
@@ -57,12 +57,12 @@ contract SafeModuleManagerTest is SafeTestHelper {
         safe3 = createSafeWithNonce(owners3, 1, 3);
     }
 
-    function _deployAndSetupModule(GnosisSafe safe, uint256 ownerPK) internal returns (address) {
+    function _deployAndSetupModule(Safe safe, uint256 ownerPK) internal returns (address) {
         require(address(safe) != address(0), "Safe address cannot be 0");
         
-        // Step 1: Enable manager as a module on the Safe
-        safeHelper(safe, ownerPK, address(safe), 
-            abi.encodeWithSelector(ISafe.enableModule.selector, address(moduleManager)));
+        // // Step 1: Enable manager as a module on the Safe
+        // safeHelper(safe, ownerPK, address(safe), 
+        //     abi.encodeWithSelector(ISafe.enableModule.selector, address(moduleManager)));
 
         // Step 2: Call addModuleForSafe() to create the child module
         safeHelper(safe, ownerPK, address(moduleManager), 
@@ -78,7 +78,7 @@ contract SafeModuleManagerTest is SafeTestHelper {
     }
 
     function testDeployFactory() public {
-        assertEq(moduleManager.managerOwner(), managerOwner);
+        assertEq(moduleManager.owner(), managerOwner);
         assertEq(moduleManager.getModuleCount(), 0);
     }
 
@@ -239,25 +239,6 @@ contract SafeModuleManagerTest is SafeTestHelper {
         assertTrue(ManagedSafeModule(module3).isSafeOwner(newOwner));
     }
 
-    function testFallbackFunction() public {
-        // Criar módulos
-        address module1 = _deployAndSetupModule(safe1, owner1PK);
-        address module2 = _deployAndSetupModule(safe2, owner2PK);
-        
-        // Usar fallback para chamar addSafeOwner
-        bytes4 functionSelector = ManagedSafeModule.addSafeOwner.selector;
-        bytes memory params = abi.encode(newOwner, uint256(2));
-        bytes memory callData = abi.encodePacked(functionSelector, params);
-        
-        vm.prank(managerOwner);
-        (bool success, ) = address(moduleManager).call(callData);
-        assertTrue(success,"fallback called");
-
-        // Verificar se a função foi chamada via fallback
-        assertTrue(ManagedSafeModule(module1).isSafeOwner(newOwner));
-        assertTrue(ManagedSafeModule(module2).isSafeOwner(newOwner));
-    }
-
     function testOnlyFactoryOwnerCanCall() public {
         // Criar módulo
         _deployAndSetupModule(safe1, owner1PK);
@@ -335,8 +316,8 @@ contract SafeModuleManagerTest is SafeTestHelper {
         safeHelper(safe1, owner1PK, address(moduleManager), 
             abi.encodeWithSelector(moduleManager.removeModuleForSafe.selector));
         
-        // Note: removeModuleForSafe disables the module but keeps it in mapping for history
-        assertEq(moduleManager.getModuleForSafe(address(safe1)), module);
+        // Note: removeModuleForSafe clears the mapping for consistency
+        assertEq(moduleManager.getModuleForSafe(address(safe1)), address(0));
     }
 
     // ============ NETWORK MANAGEMENT TESTS ============
