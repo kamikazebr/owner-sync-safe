@@ -1,21 +1,22 @@
-// SPDX-License-Identifier: LGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.6;
-
 
 import {ManagedSafeModule} from "./ManagedSafeModule.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {ISafe} from "./interfaces/ISafe.sol";
 import {Enum} from "zodiac/core/Module.sol";
 import {InvalidSafeAddress, ModuleAlreadyExists, OnlyManagerOwner, InvalidOwnerAddress, InvalidNewOwnerAddress, SameOwnerAddress, ThresholdTooLow, NoModuleForSafe, InvalidModuleAddress, NoModuleFound, AlreadyHasModuleForSafe} from "./errors/SafeModuleErrors.sol";
 
-contract SafeModuleManager is Ownable2Step {
+contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgradeable {
     
     // Version for migration tracking
-    string public constant VERSION = "1.1.0";
+    string public constant VERSION = "2.0.0-uups";
     
-    // Module template (implementation)
-    ManagedSafeModule public immutable moduleTemplate;
+    // Module template (implementation) - changed from immutable to support upgrades
+    ManagedSafeModule public moduleTemplate;
     
     // Mapping from Safe to its module
     mapping(address => address) public safeToModule;
@@ -58,8 +59,23 @@ contract SafeModuleManager is Ownable2Step {
     event SafeToModuleSet(address indexed safe, address indexed module);
     event ModuleDisabledOnSafe(address indexed safe, address indexed module);
 
-    constructor(ManagedSafeModule _moduleTemplate) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    /**
+     * @dev Initialize the contract (replaces constructor for UUPS)
+     * @param _moduleTemplate The module template implementation
+     * @param _owner Initial owner of the contract
+     */
+    function initialize(ManagedSafeModule _moduleTemplate, address _owner) public initializer {
+        __Ownable_init();
+        __Ownable2Step_init();
+        __UUPSUpgradeable_init();
+
         moduleTemplate = _moduleTemplate;
+        _transferOwnership(_owner);
     }
     
     /**
@@ -575,4 +591,27 @@ contract SafeModuleManager is Ownable2Step {
         return VERSION;
     }
 
-  } 
+    /**
+     * @dev Authorize contract upgrades - only owner can upgrade
+     * @param newImplementation Address of the new implementation
+     */
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        // Additional upgrade validation can be added here if needed
+    }
+
+    /**
+     * @dev Update module template (for upgrades)
+     * @param _newModuleTemplate New module template implementation
+     */
+    function updateModuleTemplate(ManagedSafeModule _newModuleTemplate) external onlyOwner {
+        if (address(_newModuleTemplate) == address(0)) revert InvalidModuleAddress();
+        moduleTemplate = _newModuleTemplate;
+    }
+
+    /**
+     * @dev Storage gap for future versions
+     * This allows for new variables to be added in future upgrades without
+     * affecting storage layout of existing variables
+     */
+    uint256[50] private __gap;
+} 

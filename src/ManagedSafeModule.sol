@@ -1,13 +1,14 @@
-// SPDX-License-Identifier: LGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.6;
 
 import {Module, Enum} from "@zodiac/contracts/core/Module.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./errors/SafeModuleErrors.sol";
 import {ISafe} from "./interfaces/ISafe.sol";
 
-contract ManagedSafeModule is Module {
+contract ManagedSafeModule is Module, UUPSUpgradeable {
     // Mapeamento para armazenar configurações por Safe
-    string public constant VERSION = "0.0.1";
+    string public constant VERSION = "2.0.0-uups";
     
     // Auto-sync configuration
     bool public autoSyncEnabled = true;
@@ -40,7 +41,9 @@ contract ManagedSafeModule is Module {
     event AutoSyncStatusChanged(bool enabled);
     event RequireFullSyncChanged(bool enabled);
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
+        _disableInitializers();
     }
 
     /**
@@ -48,6 +51,7 @@ contract ManagedSafeModule is Module {
      */
     function setUp(bytes memory) public override initializer {
         __Ownable_init();
+        __UUPSUpgradeable_init();
     }
 
     /**
@@ -425,4 +429,28 @@ contract ManagedSafeModule is Module {
     function getPrevOwner(address owner_) external view returns (address) {
         return safeConfig.prevOwner[owner_];
     }
+
+    /**
+     * @dev Get current version of the module
+     * @return version Current version string
+     */
+    function getVersion() external pure returns (string memory version) {
+        return VERSION;
+    }
+
+    /**
+     * @dev Authorize contract upgrades - only module owner can upgrade
+     * @param newImplementation Address of the new implementation
+     */
+    function _authorizeUpgrade(address newImplementation) internal override {
+        _validateModuleOwner();
+        // Additional upgrade validation can be added here if needed
+    }
+
+    /**
+     * @dev Storage gap for future versions
+     * This allows for new variables to be added in future upgrades without
+     * affecting storage layout of existing variables
+     */
+    uint256[50] private __gap;
 } 

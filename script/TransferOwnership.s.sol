@@ -43,23 +43,23 @@ contract TransferOwnershipScript is Script {
         console.log("=== ACCEPTING OWNERSHIP ===");
         console.log("Factory address:", factoryAddress);
         console.log("Caller:", msg.sender);
-        
+
         SafeModuleManager factory = SafeModuleManager(factoryAddress);
-        
+
         address pendingOwner = factory.pendingOwner();
         console.log("Pending owner:", pendingOwner);
-        
+
         if (pendingOwner != msg.sender) {
             console.log("ERROR: Only pending owner can accept ownership");
             vm.stopBroadcast();
             return;
         }
-        
+
         factory.acceptOwnership();
-        
+
         console.log("Ownership accepted successfully!");
         console.log("New owner:", factory.owner());
-        
+
         vm.stopBroadcast();
     }
 
@@ -93,7 +93,7 @@ contract TransferOwnershipScript is Script {
 
     function getOwnershipInfo() external view {
         SafeModuleManager factory = SafeModuleManager(factoryAddress);
-        
+
         console.log("=== OWNERSHIP INFO ===");
         console.log("Factory Address:", factoryAddress);
         console.log("Current Owner:", factory.owner());

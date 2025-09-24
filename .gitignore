@@ -17,3 +17,4 @@ broadcast/**
 .env
 
 .vscode/settings.json
+.env

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.6;
 
 import "forge-std/Test.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../src/ManagedSafeModule.sol";
 import "../src/SafeModuleManager.sol";
 import "./helpers/SafeTestHelper.sol";
@@ -25,9 +26,18 @@ contract SafeModuleManagerNewFunctionsTest is Test, SafeTestHelper {
         
         // Deploy module template
         moduleTemplate = new ManagedSafeModule();
-        
-        // Deploy factory
-        moduleManager = new SafeModuleManager(moduleTemplate);
+
+        // Deploy factory using UUPS
+        SafeModuleManager implementation = new SafeModuleManager();
+
+        bytes memory initData = abi.encodeWithSelector(
+            SafeModuleManager.initialize.selector,
+            moduleTemplate,
+            address(this)
+        );
+
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
+        moduleManager = SafeModuleManager(address(proxy));
         
         // Set up keys
         managerOwnerPK = 0xa11ce;

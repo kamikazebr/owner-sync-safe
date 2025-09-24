@@ -204,5 +204,58 @@ deploy-factory-multi-basesep:
 	-vvv
 
 
+# UUPS Deployment Commands
+
+# Deploy UUPS implementations and proxy locally
+deploy-uups-local:
+	-forge script script/DeployUUPS.s.sol:DeployUUPS \
+	--rpc-url http://127.0.0.1:8545 \
+	--private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+	--broadcast \
+	-vvvv
+
+# Deploy UUPS on Base
+deploy-uups-base:
+	-forge script script/DeployUUPS.s.sol:DeployUUPS \
+	--rpc-url $(RPC_URL_BASE) \
+	--account pkf \
+	--chain-id 8453 \
+	--broadcast \
+	--legacy \
+	--verify \
+	--etherscan-api-key $(BASESCAN_API_KEY) \
+	-vvv
+
+# Upgrade UUPS proxy (requires PROXY_ADDRESS env var)
+upgrade-uups:
+	@if [ -z "$$PROXY_ADDRESS" ]; then \
+		echo "Error: PROXY_ADDRESS environment variable is required"; \
+		exit 1; \
+	fi
+	-forge script script/UpgradeUUPS.s.sol:UpgradeUUPS \
+	--rpc-url $(RPC_URL_BASE) \
+	--account pkf \
+	--chain-id 8453 \
+	--broadcast \
+	-vvv
+
+# Upgrade module template (requires PROXY_ADDRESS env var)
+upgrade-module-template:
+	@if [ -z "$$PROXY_ADDRESS" ]; then \
+		echo "Error: PROXY_ADDRESS environment variable is required"; \
+		exit 1; \
+	fi
+	-forge script script/UpgradeUUPS.s.sol:UpgradeUUPS \
+	--rpc-url $(RPC_URL_BASE) \
+	--account pkf \
+	--sig "upgradeModuleTemplate()" \
+	--chain-id 8453 \
+	--broadcast \
+	-vvv
+
+# Check contract sizes to ensure they fit within limits
+check-sizes:
+	forge build --sizes
+
 # Rename all instances of this repo with the new repo name
 rename :; chmod +x ./scripts/* && ./scripts/rename.sh
