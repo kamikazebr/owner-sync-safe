@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "../src/ManagedSafeModule.sol";
 import "./helpers/SafeTestHelper.sol";
 import {ISafe} from "../src/interfaces/ISafe.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract ManagedSafeModuleTest is SafeTestHelper {
     Safe safe;
@@ -36,8 +37,18 @@ contract ManagedSafeModuleTest is SafeTestHelper {
         owners[0] = owner0;
         safe = createSafeWithNonce(owners, 1, 1);
         
-        module = new ManagedSafeModule();
-        module.setUp("");
+        // Create module implementation
+        ManagedSafeModule moduleImpl = new ManagedSafeModule();
+
+        // Create proxy and initialize
+        bytes memory initData = abi.encodeWithSelector(
+            ManagedSafeModule.setUp.selector,
+            ""
+        );
+
+        ERC1967Proxy moduleProxy = new ERC1967Proxy(address(moduleImpl), initData);
+        module = ManagedSafeModule(address(moduleProxy));
+
         module.setAvatar(address(safe));
         module.setTarget(address(safe));
         // Configurar o módulo para o Safe

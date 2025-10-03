@@ -158,11 +158,11 @@ contract ManagedSafeModuleUUPSTest is SafeTestHelper {
         // Deploy new implementation
         ManagedSafeModule newImpl = new ManagedSafeModule();
 
-        // Upgrade both modules
-        vm.prank(moduleOwner);
+        // Upgrade both modules - each safe upgrades its own module
+        vm.prank(address(safe1));
         UUPSUpgradeable(module1).upgradeTo(address(newImpl));
 
-        vm.prank(moduleOwner);
+        vm.prank(address(safe2));
         UUPSUpgradeable(module2).upgradeTo(address(newImpl));
 
         // Both should have new version

@@ -4,6 +4,7 @@ pragma solidity ^0.8.6;
 import "forge-std/Test.sol";
 import "../src/ManagedSafeModule.sol";
 import "./helpers/SafeTestHelper.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {ISafe} from "../src/interfaces/ISafe.sol";
 import {SyncLimitTooHigh, SyncLimitTooLow, OperationRequiresFullSync} from "../src/errors/SafeModuleErrors.sol";
 
@@ -47,9 +48,11 @@ contract ManagedSafeModuleAutoSyncTest is SafeTestHelper {
         owners[0] = owner0;
         safe = createSafeWithNonce(owners, 1, 1);
 
-        // Create and configure module
-        module = new ManagedSafeModule();
-        module.setUp("");
+        // Create and configure module with proxy
+        ManagedSafeModule moduleImpl = new ManagedSafeModule();
+        bytes memory initData = abi.encodeWithSelector(ManagedSafeModule.setUp.selector, "");
+        ERC1967Proxy moduleProxy = new ERC1967Proxy(address(moduleImpl), initData);
+        module = ManagedSafeModule(address(moduleProxy));
         module.setAvatar(address(safe));
         module.setTarget(address(safe));
 

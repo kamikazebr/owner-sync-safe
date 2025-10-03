@@ -1,0 +1,27 @@
+{
+  "name": "Owner Sync Safe",
+  "description": "Gerenciamento de módulos Safe para sincronização de owners entre múltiplos Safes",
+  "iconPath": "icon.png",
+  "providedBy": {
+    "name": "1Hive",
+    "url": "https://1hive.org"
+  },
+  "socialProfiles": [
+    {
+      "platform": "github",
+      "url": "https://github.com/kamikazebr/owner-sync-safe"
+    }
+  ],
+  "safeAppsPermissions": [
+    {
+      "feature": "camera",
+      "description": "Camera access for QR code scanning (optional)"
+    }
+  ],
+  "chainIds": [
+    "1",
+    "100",
+    "11155111"
+  ],
+  "version": "1.0.0"
+}

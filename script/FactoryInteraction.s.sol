@@ -49,13 +49,8 @@ contract FactoryInteractionScript is Script {
         console.log("Module Template:", address(factory.moduleTemplate()));
         console.log("Total Modules:", factory.getModuleCount());
         
-        // Get network status
-        SafeModuleManager.NetworkInfo memory info = factory.getNetworkStatus();
-        console.log("Network Status:");
-        console.log("  Total Safes:", info.totalSafes);
-        console.log("  Active Modules:", info.activeModules);
-        console.log("  Chain ID:", info.chainId);
-        console.log("  Last Update:", info.lastUpdate);
+        // Network status functions removed for size optimization
+        console.log("Network Status: Functions removed for contract size optimization");
         
         vm.stopBroadcast();
     }

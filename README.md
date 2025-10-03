@@ -1,55 +1,67 @@
 # Owner Sync Safe
 
-UUPS upgradeable system for synchronizing Safe owners across multiple chains and Safes.
+Next.js application for Safe module management with RainbowKit and Safe Apps SDK integration.
 
-## Overview
+## Features
 
-Owner Sync Safe provides a secure, upgradeable infrastructure for managing Safe owners across multiple chains. The system uses the UUPS (Universal Upgradeable Proxy Standard) pattern to enable future upgrades while maintaining state consistency.
-
-## Key Features
-
-- **UUPS Upgradeable**: Both manager and modules support secure upgrades
+- **Next.js 14** with App Router and TypeScript
+- **RainbowKit** for wallet connectivity
+- **Safe Apps SDK** integration for Safe wallet compatibility
+- **Wagmi v2** for Ethereum interactions
+- **Tailwind CSS** for styling
+- **UUPS Upgradeable Contracts**: Both manager and modules support secure upgrades
 - **Cross-Safe Operations**: Synchronize owners across multiple Safes
 - **Two-Step Ownership**: Enhanced security with `Ownable2Step` pattern
-- **Storage Gaps**: Future-proof storage layout for upgrades
-- **Comprehensive Testing**: Full test coverage for UUPS functionality
 
 ## Architecture
 
-The system consists of two main components:
+The system consists of:
 
-1. **SafeModuleManager**: UUPS proxy that creates and manages all modules
-2. **ManagedSafeModule**: Individual UUPS modules for each Safe
+1. **Next.js Frontend**: Modern web interface with wallet connectivity
+2. **SafeModuleManager**: UUPS proxy that creates and manages all modules
+3. **ManagedSafeModule**: Individual UUPS modules for each Safe
 
-For detailed architecture information, see [ARCHITECTURE.md](./ARCHITECTURE.md).
-
-## Documentation
-
-📚 **Complete documentation**: https://notes.felipenovaesrocha.xyz/s/gHyTdvBYj
-
-## Quick Start
+## Frontend Setup
 
 ### Installation
 
 ```bash
-# Install dependencies
-make install
-forge install
+# Install dependencies with pnpm
+pnpm install
 ```
 
-### Testing
+### Configuration
 
 ```bash
-# Run all tests
+# Copy environment template
+cp .env.local.example .env.local
+# Add your WalletConnect Project ID from https://cloud.walletconnect.com/
+```
+
+### Development
+
+```bash
+# Run development server
+pnpm dev
+
+# Type checking
+pnpm type-check
+
+# Build for production
+pnpm build
+```
+
+## Smart Contracts
+
+### Development Commands
+
+```bash
+# Build contracts
+forge build --sizes
+
+# Run tests
 forge test
 
-# Run specific UUPS tests
-forge test --match-contract "UUPS"
-```
-
-### Deployment
-
-```bash
 # Deploy UUPS system
 forge script script/DeployUUPS.s.sol --broadcast
 
@@ -57,34 +69,39 @@ forge script script/DeployUUPS.s.sol --broadcast
 forge script script/UpgradeUUPS.s.sol --broadcast
 ```
 
-## Environment Setup
+See `Makefile` for additional commands.
 
-1. Copy the environment template:
-```bash
-cp .env.example .env
+## Safe Apps Integration
+
+This application works as:
+
+1. **Standalone dApp** - Connect with any wallet via RainbowKit
+2. **Safe App** - Auto-connects when loaded in Safe wallet iframe
+
+The Safe Apps SDK automatically detects when running inside a Safe wallet and provides access to Safe-specific functionality.
+
+## Project Structure
+
+```
+src/
+├── app/                 # Next.js App Router pages
+├── components/          # React components
+├── hooks/              # Custom React hooks
+└── lib/                # Utility libraries and configurations
+
+contracts/              # Solidity smart contracts
+script/                 # Deployment scripts
+test/                   # Contract tests
 ```
 
-2. Fill in your API keys and RPC URLs in `.env`
+## Package Management
 
-## Development Commands
+This project uses **pnpm** instead of npm for faster, more efficient dependency management.
 
-See `Makefile` for all available commands:
+## Documentation
 
-```bash
-make install     # Install dependencies
-make build       # Build contracts
-make test        # Run tests
-make deploy      # Deploy contracts
-make lint        # Run linter
-```
+📚 **Complete documentation**: https://notes.felipenovaesrocha.xyz/s/gHyTdvBYj
 
 ## License
 
 This project is licensed under the AGPL-3.0 License - see the [LICENSE](LICENSE) file for details.
-
-## Security
-
-- All sensitive keys are excluded from version control
-- UUPS upgrade authorization prevents unauthorized upgrades
-- Two-step ownership transfer reduces ownership risks
-- Storage gaps protect against storage collision in upgrades

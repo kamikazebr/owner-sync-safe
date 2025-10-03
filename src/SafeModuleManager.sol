@@ -27,17 +27,8 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
     // Mapping to check if an address is a valid module
     mapping(address => bool) public isModule;
     
-    // Chain ID tracking for cross-chain support
-    mapping(address => uint256) public safeToChainId;
+    // Simplified tracking
     mapping(address => bool) public isModuleActive;
-    
-    // Network status tracking
-    struct NetworkInfo {
-        uint256 totalSafes;
-        uint256 activeModules;
-        uint256 chainId;
-        uint256 lastUpdate;
-    }
     
     
     // Internal function to validate manager owner access (more gas efficient than modifier)
@@ -48,14 +39,7 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
     // Events
     event ModuleCreated(address indexed safe, address indexed module);
     event SafeRemovedFromNetwork(address indexed safe);
-    event CrossModuleCall(address indexed caller, address[] modules, string functionName);
-    event BatchOperationExecuted(address indexed caller, uint256 operationCount, uint256 successCount);
-    event SafeValidated(address indexed safe, uint256 chainId, bool isValid);
-    event NetworkStatusUpdated(uint256 totalSafes, uint256 activeModules, uint256 chainId);
-    event ModuleHealthChecked(address indexed module, bool isActive);
-    event SafeOperationError(address indexed safe, string operation, bytes errorData);
-    event CrossModuleOperationSuccess(address indexed module, string operation);
-    event CrossModuleOperationFailed(address indexed module, string operation, bytes errorData);
+    event CrossModuleCall(address indexed caller, address[] modules);
     event SafeToModuleSet(address indexed safe, address indexed module);
     event ModuleDisabledOnSafe(address indexed safe, address indexed module);
 
@@ -82,22 +66,16 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
      * @dev Execute operation on a single module with proper error handling
      * @param module Address of the module to call
      * @param callData Encoded function call data
-     * @param operationName Name of the operation for event logging
      * @return success True if the operation succeeded
      */
     function _executeOnModule(
         address module,
         bytes memory callData,
-        string memory operationName
+        string memory /* operationName */
     ) internal returns (bool success) {
-        (bool callSuccess, bytes memory returnData) = module.call(callData);
+        (bool callSuccess, ) = module.call(callData);
         success = callSuccess;
-        
-        if (success) {
-            emit CrossModuleOperationSuccess(module, operationName);
-        } else {
-            emit CrossModuleOperationFailed(module, operationName, returnData);
-        }
+
     }
     
     /**
@@ -115,7 +93,6 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
                 successCount++;
             }
         }
-        emit BatchOperationExecuted(msg.sender, allModules.length, successCount);
     }
     
     
@@ -143,8 +120,8 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
         moduleInstance.setTarget(safe);
         moduleInstance.configureForSafe();
         
-        // Transfer ownership of the module to the factory
-        moduleInstance.transferOwnership(address(this));
+        // Transfer ownership of the module to the Safe itself
+        moduleInstance.transferOwnership(safe);
         safeToModule[safe] = module;
         allModules.push(module);
         isModule[module] = true;
@@ -220,7 +197,6 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
             isValid = false;
         }
         
-        emit SafeValidated(safe, block.chainid, isValid);
     }
 
     /**
@@ -262,7 +238,7 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
         );
         
         _executeOnAllModules(callData, "addSafeOwner");
-        emit CrossModuleCall(msg.sender, allModules, "addSafeOwner");
+        emit CrossModuleCall(msg.sender, allModules);
     }
     
     /**
@@ -283,7 +259,7 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
         );
         
         _executeOnAllModules(callData, "removeSafeOwner");
-        emit CrossModuleCall(msg.sender, allModules, "removeSafeOwner");
+        emit CrossModuleCall(msg.sender, allModules);
     }
     
     /**
@@ -305,7 +281,7 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
         );
         
         _executeOnAllModules(callData, "replaceSafeOwner");
-        emit CrossModuleCall(msg.sender, allModules, "replaceSafeOwner");
+        emit CrossModuleCall(msg.sender, allModules);
     }
     
     /**
@@ -322,7 +298,7 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
         );
         
         _executeOnAllModules(callData, "changeSafeThreshold");
-        emit CrossModuleCall(msg.sender, allModules, "changeSafeThreshold");
+        emit CrossModuleCall(msg.sender, allModules);
     }
     
     /**
@@ -348,29 +324,24 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
         );
         
         _executeOnAllModules(callData, "execTransaction");
-        emit CrossModuleCall(msg.sender, allModules, "execTransaction");
+        emit CrossModuleCall(msg.sender, allModules);
     }
     
 
     
     /**
      * @dev Call a specific function in all modules
-     * @param functionSelector Function selector (4 bytes)
-     * @param params Function parameters
      */
     function callFunctionInAll(bytes4 functionSelector, bytes calldata params) external {
         _validateManagerOwner();
         bytes memory callData = abi.encodePacked(functionSelector, params);
         _callAllModules(callData);
-        
-        emit CrossModuleCall(msg.sender, allModules, string(abi.encodePacked(functionSelector)));
+
+        emit CrossModuleCall(msg.sender, allModules);
     }
     
     /**
      * @dev Call function in specific modules
-     * @param modules List of modules
-     * @param functionSelector Function selector
-     * @param params Function parameters
      */
     function callFunctionInModules(
         address[] calldata modules,
@@ -379,14 +350,15 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
     ) external {
         _validateManagerOwner();
         bytes memory callData = abi.encodePacked(functionSelector, params);
-        
+
         for (uint i = 0; i < modules.length; i++) {
             if (!isModule[modules[i]]) revert InvalidModuleAddress();
-            (bool _success, ) = address(modules[i]).call(callData);
-            // Ignore failures silently
+            (bool success,) = address(modules[i]).call(callData);
+            // Ignore failure - some modules may not implement the function
+            success; // Suppress unused variable warning
         }
-        
-        emit CrossModuleCall(msg.sender, modules, string(abi.encodePacked(functionSelector)));
+
+        emit CrossModuleCall(msg.sender, modules);
     }
     
     
@@ -396,8 +368,9 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
      */
     function _callAllModules(bytes memory data) internal {
         for (uint i = 0; i < allModules.length; i++) {
-            (bool _success, ) = address(allModules[i]).call(data);
+            (bool success,) = address(allModules[i]).call(data);
             // Ignore failures silently - module may not have the function or have different permissions
+            success; // Suppress unused variable warning
         }
     }
     
@@ -461,9 +434,8 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
         try ISafe(safe).disableModule(address(0x1), module) {
             // Success - module disabled
             emit ModuleDisabledOnSafe(safe, module);
-        } catch (bytes memory errorData) {
+        } catch (bytes memory /* errorData */) {
             // Log the error but continue with cleanup
-            emit SafeOperationError(safe, "disableModule", errorData);
         }
     }
 
@@ -483,7 +455,6 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
         
         // Remove from mappings
         delete safeToModule[safe];
-        delete safeToChainId[safe];
         delete isModuleActive[module];
         
         // Remove from allModules array
@@ -501,84 +472,10 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
         emit SafeRemovedFromNetwork(safe);
     }
 
-    /**
-     * @dev Get network status with chain context
-     * @return info Network information struct
-     */
-    function getNetworkStatus() external returns (NetworkInfo memory info) {
-        uint256 activeCount = 0;
-        
-        // Count active modules
-        for (uint i = 0; i < allModules.length; i++) {
-            if (isModuleActive[allModules[i]]) {
-                activeCount++;
-            }
-        }
-        
-        info = NetworkInfo({
-            totalSafes: allModules.length,
-            activeModules: activeCount,
-            chainId: block.chainid,
-            lastUpdate: block.timestamp
-        });
-        
-        emit NetworkStatusUpdated(info.totalSafes, info.activeModules, info.chainId);
-    }
-
-    /**
-     * @dev Check if a module is active and healthy
-     * @param safe Address of the Safe
-     * @return isActive True if module is active and healthy
-     */
-    function isModuleActiveForSafe(address safe) external returns (bool isActive) {
-        address module = safeToModule[safe];
-        if (module == address(0)) return false;
-        
-        // Check if module is marked as active
-        isActive = isModuleActive[module];
-        
-        // Additional health checks
-        if (isActive) {
-            try ManagedSafeModule(module).isSafeConfigured() returns (bool configured) {
-                isActive = configured;
-            } catch {
-                isActive = false;
-            }
-        }
-        
-        emit ModuleHealthChecked(module, isActive);
-    }
 
 
-    /**
-     * @dev Update module health status
-     * @param module Address of the module to check
-     */
-    function updateModuleHealth(address module) external {
-        if (!isModule[module]) revert InvalidModuleAddress();
-        
-        bool isHealthy = false;
-        try ManagedSafeModule(module).isSafeConfigured() returns (bool configured) {
-            isHealthy = configured;
-        } catch {
-            isHealthy = false;
-        }
-        
-        isModuleActive[module] = isHealthy;
-        emit ModuleHealthChecked(module, isHealthy);
-    }
 
-    /**
-     * @dev Get chain ID for a specific Safe
-     * @param safe Address of the Safe
-     * @return chainId Chain ID where Safe is deployed
-     */
-    function getSafeChainId(address safe) external view returns (uint256 chainId) {
-        chainId = safeToChainId[safe];
-        if (chainId == 0) {
-            chainId = block.chainid; // Default to current chain
-        }
-    }
+
 
 
     // ============ VERSION MANAGEMENT ============

@@ -226,6 +226,20 @@ deploy-uups-base:
 	--etherscan-api-key $(BASESCAN_API_KEY) \
 	-vvv
 
+# Deploy UUPS on Gnosis Chain
+deploy-uups-gnosis:
+	-forge script script/DeployUUPSMultiChain.s.sol:DeployUUPSMultiChain \
+	--rpc-url $(RPC_URL_GNOSIS) \
+	--account pkf \
+	--sig "run(string)" 'gnosis' \
+	--etherscan-api-key $(ETHERSCAN_API_KEY) \
+	--chain-id 100 \
+	--with-gas-price 5gwei \
+	--priority-gas-price 1gwei \
+	--broadcast \
+	--verify \
+	-vvv
+
 # Upgrade UUPS proxy (requires PROXY_ADDRESS env var)
 upgrade-uups:
 	@if [ -z "$$PROXY_ADDRESS" ]; then \

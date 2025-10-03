@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "../src/ManagedSafeModule.sol";
 import "./helpers/SafeTestHelper.sol";
 import "./mock/MockSafeForFailure.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {ISafe} from "../src/interfaces/ISafe.sol";
 import {InvalidSafeAddress, SafeNotConfigured, SafeAlreadyConfigured, InvalidOwnerAddress, SameOwnerAddress, ThresholdTooLow, ThresholdTooHigh, OnlyModuleOwner, OnlySafeOwners, AlreadySafeOwner, NotSafeOwner, OldOwnerNotFound, NewOwnerAlreadyExists, FailedToAddOwner} from "../src/errors/SafeModuleErrors.sol";
 
@@ -39,16 +40,19 @@ contract ManagedSafeModuleEdgeCasesTest is SafeTestHelper {
         owners[0] = owner0;
         safe = createSafeWithNonce(owners, 1, 1);
         
-        // Create and configure module
-        module = new ManagedSafeModule();
-        module.setUp("");
+        // Create and configure module with proxy
+        ManagedSafeModule moduleImpl = new ManagedSafeModule();
+        bytes memory initData = abi.encodeWithSelector(ManagedSafeModule.setUp.selector, "");
+        ERC1967Proxy moduleProxy = new ERC1967Proxy(address(moduleImpl), initData);
+        module = ManagedSafeModule(address(moduleProxy));
         module.setAvatar(address(safe));
         module.setTarget(address(safe));
         module.configureForSafe();
-        
+
         // Create unconfigured module for testing
-        unconfiguredModule = new ManagedSafeModule();
-        unconfiguredModule.setUp("");
+        ManagedSafeModule unconfiguredImpl = new ManagedSafeModule();
+        ERC1967Proxy unconfiguredProxy = new ERC1967Proxy(address(unconfiguredImpl), initData);
+        unconfiguredModule = ManagedSafeModule(address(unconfiguredProxy));
         unconfiguredModule.setAvatar(address(safe));
         unconfiguredModule.setTarget(address(safe));
         // Don't configure this one
@@ -61,10 +65,13 @@ contract ManagedSafeModuleEdgeCasesTest is SafeTestHelper {
     // ============ CONFIGURATION EDGE CASES ============
     
     function testConfigureForSafeWithZeroTarget() public {
-        ManagedSafeModule testModule = new ManagedSafeModule();
-        testModule.setUp("");
+        // Create module with proxy
+        ManagedSafeModule testModuleImpl = new ManagedSafeModule();
+        bytes memory initData = abi.encodeWithSelector(ManagedSafeModule.setUp.selector, "");
+        ERC1967Proxy testModuleProxy = new ERC1967Proxy(address(testModuleImpl), initData);
+        ManagedSafeModule testModule = ManagedSafeModule(address(testModuleProxy));
         // Don't set target - it will be address(0)
-        
+
         vm.expectRevert(InvalidSafeAddress.selector);
         testModule.configureForSafe();
     }
@@ -233,15 +240,17 @@ contract ManagedSafeModuleEdgeCasesTest is SafeTestHelper {
     // ============ CONFIGURATION WITH INTERNAL CALL TESTS ============
     
     function testConfigureForSafeInternal() public {
-        // Create a new module to test internal configuration
-        ManagedSafeModule newModule = new ManagedSafeModule();
-        newModule.setUp("");
+        // Create a new module with proxy to test internal configuration
+        ManagedSafeModule newModuleImpl = new ManagedSafeModule();
+        bytes memory initData = abi.encodeWithSelector(ManagedSafeModule.setUp.selector, "");
+        ERC1967Proxy newModuleProxy = new ERC1967Proxy(address(newModuleImpl), initData);
+        ManagedSafeModule newModule = ManagedSafeModule(address(newModuleProxy));
         newModule.setAvatar(address(safe));
         newModule.setTarget(address(safe));
-        
+
         // Test that it's not configured initially
         assertFalse(newModule.isSafeConfigured());
-        
+
         // Configure it
         newModule.configureForSafe();
         

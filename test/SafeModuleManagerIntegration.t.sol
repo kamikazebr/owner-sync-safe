@@ -115,11 +115,8 @@ contract SafeModuleManagerIntegrationTest is SafeTestHelper {
         
         // Verify all modules are created and active
         assertEq(moduleManager.getModuleCount(), 5);
-        
-        SafeModuleManager.NetworkInfo memory networkInfo = moduleManager.getNetworkStatus();
-        assertEq(networkInfo.totalSafes, 5);
-        assertEq(networkInfo.activeModules, 5);
-        assertEq(networkInfo.chainId, block.chainid);
+
+        // NetworkInfo removed for size optimization
     }
 
     function testBatchOperationsWithPartialFailures() public {
@@ -194,11 +191,7 @@ contract SafeModuleManagerIntegrationTest is SafeTestHelper {
         // Don't enable safe4 and safe5 modules
         
         // Check network status
-        SafeModuleManager.NetworkInfo memory info = moduleManager.getNetworkStatus();
-        assertEq(info.totalSafes, 5);
-        assertEq(info.activeModules, 3); // Only 3 are active
-        assertEq(info.chainId, block.chainid);
-        assertTrue(info.lastUpdate > 0);
+        // NetworkInfo removed for size optimization
     }
 
     function testModuleHealthUpdatesWithFailingModules() public {
@@ -222,22 +215,17 @@ contract SafeModuleManagerIntegrationTest is SafeTestHelper {
         moduleManager.addModuleForSafe();
         
         // Test module health checks
-        assertTrue(moduleManager.isModuleActiveForSafe(address(safe1)));
+        assertTrue(moduleManager.hasModule(address(safe1)));
         // safe2 module is active even without enableModule call
-        assertTrue(moduleManager.isModuleActiveForSafe(address(safe2)));
+        assertTrue(moduleManager.hasModule(address(safe2)));
         
-        // Update module health - this will check the actual configuration
-        vm.prank(managerOwner);
-        moduleManager.updateModuleHealth(module1);
-        
-        vm.prank(managerOwner);
-        moduleManager.updateModuleHealth(module2);
+        // updateModuleHealth removed for size optimization - no health updates needed
         
         // After health check, module2 might still be considered healthy
         // since the health check is basic
-        assertTrue(moduleManager.isModuleActiveForSafe(address(safe1)));
+        assertTrue(moduleManager.hasModule(address(safe1)));
         // Module2 health depends on the isSafeConfigured implementation
-        bool isModule2Active = moduleManager.isModuleActiveForSafe(address(safe2));
+        bool isModule2Active = moduleManager.hasModule(address(safe2));
         // We don't assert false here as the implementation might consider it healthy
         assertTrue(isModule2Active || !isModule2Active); // This always passes but documents the uncertainty
     }
@@ -255,7 +243,7 @@ contract SafeModuleManagerIntegrationTest is SafeTestHelper {
         
         // Test that cross-module operations emit events
         vm.expectEmit(true, false, false, true);
-        emit CrossModuleCall(managerOwner, allModules, "addSafeOwner");
+        emit CrossModuleCall(managerOwner, allModules);
         
         vm.prank(managerOwner);
         moduleManager.addSafeOwnerToAll(newOwner, 2);
@@ -279,7 +267,7 @@ contract SafeModuleManagerIntegrationTest is SafeTestHelper {
         bytes4 selector = bytes4(keccak256("configureForSafe()"));
         
         vm.expectEmit(true, false, false, true);
-        emit CrossModuleCall(managerOwner, specificModules, string(abi.encodePacked(selector)));
+        emit CrossModuleCall(managerOwner, specificModules);
         
         vm.prank(managerOwner);
         moduleManager.callFunctionInModules(specificModules, selector, "");
@@ -298,7 +286,7 @@ contract SafeModuleManagerIntegrationTest is SafeTestHelper {
         
         // Test exec transaction in all modules
         vm.expectEmit(true, false, false, true);
-        emit CrossModuleCall(managerOwner, allModules, "execTransaction");
+        emit CrossModuleCall(managerOwner, allModules);
         
         vm.prank(managerOwner);
         moduleManager.execTransactionInAll(
@@ -350,6 +338,6 @@ contract SafeModuleManagerIntegrationTest is SafeTestHelper {
     }
 
     // Events for testing
-    event CrossModuleCall(address indexed caller, address[] modules, string functionName);
+    event CrossModuleCall(address indexed caller, address[] modules);
     event SafeRemovedFromNetwork(address indexed safe);
 }

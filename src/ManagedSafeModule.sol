@@ -9,6 +9,9 @@ import {ISafe} from "./interfaces/ISafe.sol";
 contract ManagedSafeModule is Module, UUPSUpgradeable {
     // Mapeamento para armazenar configurações por Safe
     string public constant VERSION = "2.0.0-uups";
+
+    // Manager that created this module
+    address public manager;
     
     // Auto-sync configuration
     bool public autoSyncEnabled = true;
@@ -52,6 +55,13 @@ contract ManagedSafeModule is Module, UUPSUpgradeable {
     function setUp(bytes memory) public override initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
+        // Set the manager to the contract that created this module
+        manager = msg.sender;
+
+        // Initialize auto-sync configuration with default values
+        autoSyncEnabled = true;
+        requireFullSyncForOperations = false;
+        maxSyncOwners = 10;
     }
 
     /**
@@ -85,7 +95,7 @@ contract ManagedSafeModule is Module, UUPSUpgradeable {
      * @dev Internal function to validate that the caller is the module owner
      */
     function _validateModuleOwner() internal view {
-        if (msg.sender != owner()) revert OnlyModuleOwner();
+        if (msg.sender != owner() && msg.sender != manager) revert OnlyModuleOwner();
     }
 
     /**
@@ -440,9 +450,8 @@ contract ManagedSafeModule is Module, UUPSUpgradeable {
 
     /**
      * @dev Authorize contract upgrades - only module owner can upgrade
-     * @param newImplementation Address of the new implementation
      */
-    function _authorizeUpgrade(address newImplementation) internal override {
+    function _authorizeUpgrade(address /* newImplementation */) internal view override {
         _validateModuleOwner();
         // Additional upgrade validation can be added here if needed
     }
