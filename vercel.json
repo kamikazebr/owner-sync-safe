@@ -1,4 +1,4 @@
 {
-  "installCommand": "npm install -g pnpm@9.7.0 && pnpm install",
-  "buildCommand": "pnpm build"
+  "installCommand": "npx pnpm@9.7.0 install",
+  "buildCommand": "npx pnpm@9.7.0 build"
 }
