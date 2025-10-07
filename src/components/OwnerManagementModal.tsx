@@ -11,17 +11,21 @@ import {
   UserCheck,
   Hash,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
-import { useManagedModule } from '@/hooks/useManagedModule';
+import { useModuleManager } from '@/hooks/useModuleManager';
+import { useGroupSafes } from '@/hooks/useGroupSafes';
+import { useSafeContract } from '@/hooks/useSafeContract';
+import { useAccount } from 'wagmi';
 import { truncateAddress, getPreviousOwner, isValidAddress, isValidThreshold, cn } from '@/lib/utils';
+import { theme } from '@/lib/theme';
 import toast from 'react-hot-toast';
 
 interface OwnerManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
-  moduleAddress: Address;
-  safeAddress: Address;
+  managerAddress: Address;
 }
 
 type OperationType = 'addOwner' | 'removeOwner' | 'replaceOwner' | 'changeThreshold';
@@ -37,24 +41,31 @@ interface OwnerOperation {
 export function OwnerManagementModal({
   isOpen,
   onClose,
-  moduleAddress,
-  safeAddress
+  managerAddress
 }: OwnerManagementModalProps) {
+  const { chainId } = useAccount();
   const [activeTab, setActiveTab] = useState<OperationType>('addOwner');
   const [operation, setOperation] = useState<OwnerOperation>({ type: 'addOwner' });
   const [loading, setLoading] = useState(false);
 
   const {
-    moduleConfig,
-    addSafeOwner,
-    removeSafeOwner,
-    replaceSafeOwner,
-    changeSafeThreshold,
-    refetchAll,
-  } = useManagedModule(moduleAddress);
+    addSafeOwnerToAll,
+    removeSafeOwnerFromAll,
+    replaceSafeOwnerInAll,
+    changeSafeThresholdInAll,
+    isLoading: isManagerLoading,
+  } = useModuleManager(managerAddress);
+
+  const { safes, refetch: refetchSafes } = useGroupSafes(managerAddress, chainId || 100);
+
+  // Get first Safe address to fetch owners from
+  const firstSafeAddress = safes && safes.length > 0 ? safes[0].safeAddress : undefined;
+
+  // Get owners and threshold from first Safe
+  const { owners, threshold } = useSafeContract(firstSafeAddress);
 
   const handleSubmit = async () => {
-    if (!moduleAddress) return;
+    if (!managerAddress) return;
 
     setLoading(true);
     try {
@@ -70,7 +81,7 @@ export function OwnerManagementModal({
             toast.error('Invalid address');
             return;
           }
-          hash = await addSafeOwner(operation.newOwner as Address, operation.newThreshold);
+          hash = await addSafeOwnerToAll(operation.newOwner as Address, operation.newThreshold);
           break;
 
         case 'removeOwner':
@@ -78,12 +89,12 @@ export function OwnerManagementModal({
             toast.error('Select an owner and new threshold');
             return;
           }
-          const prevOwnerRemove = getPreviousOwner(moduleConfig.owners, operation.ownerToRemove);
+          const prevOwnerRemove = getPreviousOwner(owners, operation.ownerToRemove);
           if (!prevOwnerRemove) {
             toast.error('Could not determine previous owner');
             return;
           }
-          hash = await removeSafeOwner(prevOwnerRemove, operation.ownerToRemove, operation.newThreshold);
+          hash = await removeSafeOwnerFromAll(prevOwnerRemove, operation.ownerToRemove, operation.newThreshold);
           break;
 
         case 'replaceOwner':
@@ -95,12 +106,12 @@ export function OwnerManagementModal({
             toast.error('Invalid new owner address');
             return;
           }
-          const prevOwnerReplace = getPreviousOwner(moduleConfig.owners, operation.oldOwner);
+          const prevOwnerReplace = getPreviousOwner(owners, operation.oldOwner);
           if (!prevOwnerReplace) {
             toast.error('Could not determine previous owner');
             return;
           }
-          hash = await replaceSafeOwner(prevOwnerReplace, operation.oldOwner, operation.newOwner as Address);
+          hash = await replaceSafeOwnerInAll(prevOwnerReplace, operation.oldOwner, operation.newOwner as Address);
           break;
 
         case 'changeThreshold':
@@ -108,11 +119,11 @@ export function OwnerManagementModal({
             toast.error('Define new threshold');
             return;
           }
-          if (!isValidThreshold(operation.newThreshold, moduleConfig.owners.length)) {
+          if (!isValidThreshold(operation.newThreshold, owners.length)) {
             toast.error('Invalid threshold');
             return;
           }
-          hash = await changeSafeThreshold(operation.newThreshold);
+          hash = await changeSafeThresholdInAll(operation.newThreshold);
           break;
       }
 
@@ -120,7 +131,7 @@ export function OwnerManagementModal({
         onClose();
         setOperation({ type: 'addOwner' });
         setActiveTab('addOwner');
-        setTimeout(() => refetchAll(), 2000);
+        setTimeout(() => refetchSafes(), 2000);
       }
     } finally {
       setLoading(false);
@@ -132,10 +143,6 @@ export function OwnerManagementModal({
     setOperation({ type: value as OperationType });
   };
 
-  if (!moduleConfig.isConfigured) {
-    return null;
-  }
-
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
@@ -145,10 +152,10 @@ export function OwnerManagementModal({
           <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 flex-shrink-0">
             <div>
               <Dialog.Title className="text-lg font-semibold text-gray-900">
-                Manage Owners
+                Manage Owners - All Safes
               </Dialog.Title>
-              <p className="text-sm text-gray-500 mt-1 font-mono">
-                {truncateAddress(safeAddress)}
+              <p className="text-sm text-gray-500 mt-1">
+                Changes will be applied to all {safes?.length || 0} Safes in the group
               </p>
             </div>
             <Dialog.Close asChild>
@@ -218,31 +225,45 @@ export function OwnerManagementModal({
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
                   <UserCheck className="h-4 w-4 text-blue-600" />
-                  Current Owners ({moduleConfig.owners.length})
+                  Current Owners ({owners.length})
                 </h3>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {moduleConfig.owners.map((owner, index) => (
-                    <div
-                      key={owner}
-                      className="flex items-center justify-between p-2 bg-white rounded text-xs"
-                    >
-                      <span className="font-mono">{truncateAddress(owner, 8)}</span>
-                      <span className="text-gray-500">#{index + 1}</span>
+
+                {owners.length === 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-900">
+                      <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <p>
+                        No owners found. Make sure at least one Safe is configured in the group.
+                      </p>
                     </div>
-                  ))}
-                </div>
-                <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Threshold:</span>
-                    <span className="font-medium">{moduleConfig.threshold}/{moduleConfig.owners.length}</span>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {owners.map((owner, index) => (
+                        <div
+                          key={owner}
+                          className="flex items-center justify-between p-2 bg-white rounded text-xs"
+                        >
+                          <span className="font-mono">{truncateAddress(owner, 8)}</span>
+                          <span className="text-gray-500">#{index + 1}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Threshold:</span>
+                        <span className="font-medium">{threshold}/{owners.length}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Add Owner Tab */}
               <Tabs.Content value="addOwner" className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={theme.input.label}>
                     New Owner Address
                   </label>
                   <input
@@ -250,25 +271,23 @@ export function OwnerManagementModal({
                     placeholder="0x..."
                     value={operation.newOwner || ''}
                     onChange={(e) => setOperation({ ...operation, newOwner: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    style={{ minHeight: '44px' }}
+                    className={theme.input.base}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={theme.input.label}>
                     New Threshold
                   </label>
                   <input
                     type="number"
                     min="1"
-                    max={moduleConfig.owners.length + 1}
+                    max={owners.length + 1}
                     value={operation.newThreshold || ''}
                     onChange={(e) => setOperation({ ...operation, newThreshold: parseInt(e.target.value) })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    style={{ minHeight: '44px' }}
+                    className={theme.input.base}
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Range: 1-{moduleConfig.owners.length + 1}
+                    Range: 1-{owners.length + 1}
                   </p>
                 </div>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -284,17 +303,16 @@ export function OwnerManagementModal({
               {/* Remove Owner Tab */}
               <Tabs.Content value="removeOwner" className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={theme.input.label}>
                     Owner to Remove
                   </label>
                   <select
                     value={operation.ownerToRemove || ''}
                     onChange={(e) => setOperation({ ...operation, ownerToRemove: e.target.value as Address })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    style={{ minHeight: '44px' }}
+                    className={theme.input.select}
                   >
                     <option value="">Select an owner</option>
-                    {moduleConfig.owners.map((owner) => (
+                    {owners.map((owner) => (
                       <option key={owner} value={owner}>
                         {truncateAddress(owner, 8)}
                       </option>
@@ -302,20 +320,19 @@ export function OwnerManagementModal({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={theme.input.label}>
                     New Threshold
                   </label>
                   <input
                     type="number"
                     min="1"
-                    max={Math.max(1, moduleConfig.owners.length - 1)}
+                    max={Math.max(1, owners.length - 1)}
                     value={operation.newThreshold || ''}
                     onChange={(e) => setOperation({ ...operation, newThreshold: parseInt(e.target.value) })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    style={{ minHeight: '44px' }}
+                    className={theme.input.base}
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Range: 1-{Math.max(1, moduleConfig.owners.length - 1)}
+                    Range: 1-{Math.max(1, owners.length - 1)}
                   </p>
                 </div>
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -331,17 +348,16 @@ export function OwnerManagementModal({
               {/* Replace Owner Tab */}
               <Tabs.Content value="replaceOwner" className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={theme.input.label}>
                     Current Owner
                   </label>
                   <select
                     value={operation.oldOwner || ''}
                     onChange={(e) => setOperation({ ...operation, oldOwner: e.target.value as Address })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    style={{ minHeight: '44px' }}
+                    className={theme.input.select}
                   >
                     <option value="">Select an owner</option>
-                    {moduleConfig.owners.map((owner) => (
+                    {owners.map((owner) => (
                       <option key={owner} value={owner}>
                         {truncateAddress(owner, 8)}
                       </option>
@@ -349,7 +365,7 @@ export function OwnerManagementModal({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={theme.input.label}>
                     New Owner Address
                   </label>
                   <input
@@ -357,8 +373,7 @@ export function OwnerManagementModal({
                     placeholder="0x..."
                     value={operation.newOwner || ''}
                     onChange={(e) => setOperation({ ...operation, newOwner: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    style={{ minHeight: '44px' }}
+                    className={theme.input.base}
                   />
                 </div>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -374,20 +389,19 @@ export function OwnerManagementModal({
               {/* Change Threshold Tab */}
               <Tabs.Content value="changeThreshold" className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={theme.input.label}>
                     New Threshold
                   </label>
                   <input
                     type="number"
                     min="1"
-                    max={moduleConfig.owners.length}
+                    max={owners.length}
                     value={operation.newThreshold || ''}
                     onChange={(e) => setOperation({ ...operation, newThreshold: parseInt(e.target.value) })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    style={{ minHeight: '44px' }}
+                    className={theme.input.base}
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Current: {moduleConfig.threshold} | Range: 1-{moduleConfig.owners.length}
+                    Current: {threshold} | Range: 1-{owners.length}
                   </p>
                 </div>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">

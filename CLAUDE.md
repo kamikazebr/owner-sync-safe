@@ -118,3 +118,4 @@ function _disableModuleOnSafe(address safe, address module) internal {
 - Group switching functionality
 
 **Priority**: HIGH - Fix before production deployment
+- only commit manifest.json if i ask for it

@@ -116,6 +116,134 @@ export function useModuleManager(managerAddress?: Address) {
     }
   };
 
+  // Add owner to all managed Safes
+  const addSafeOwnerToAll = async (newOwner: Address, threshold: number) => {
+    if (!address) {
+      toast.error('Conecte sua wallet primeiro');
+      return null;
+    }
+
+    if (address !== managerOwner) {
+      toast.error('Apenas o owner do manager pode executar esta operação');
+      return null;
+    }
+
+    setIsLoading(true);
+    try {
+      const hash = await writeContractAsync({
+        address: effectiveManagerAddress,
+        abi: SafeModuleManagerABI,
+        functionName: 'addSafeOwnerToAll',
+        args: [newOwner, BigInt(threshold)],
+      });
+
+      toast.success('Adding owner to all Safes! Aguardando confirmação...');
+      return hash;
+    } catch (error: any) {
+      console.error('Error adding owner to all:', error);
+      toast.error(`Erro ao adicionar owner: ${error.message || 'Erro desconhecido'}`);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Remove owner from all managed Safes
+  const removeSafeOwnerFromAll = async (prevOwner: Address, ownerToRemove: Address, threshold: number) => {
+    if (!address) {
+      toast.error('Conecte sua wallet primeiro');
+      return null;
+    }
+
+    if (address !== managerOwner) {
+      toast.error('Apenas o owner do manager pode executar esta operação');
+      return null;
+    }
+
+    setIsLoading(true);
+    try {
+      const hash = await writeContractAsync({
+        address: effectiveManagerAddress,
+        abi: SafeModuleManagerABI,
+        functionName: 'removeSafeOwnerFromAll',
+        args: [prevOwner, ownerToRemove, BigInt(threshold)],
+      });
+
+      toast.success('Removing owner from all Safes! Aguardando confirmação...');
+      return hash;
+    } catch (error: any) {
+      console.error('Error removing owner from all:', error);
+      toast.error(`Erro ao remover owner: ${error.message || 'Erro desconhecido'}`);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Replace owner in all managed Safes
+  const replaceSafeOwnerInAll = async (prevOwner: Address, oldOwner: Address, newOwner: Address) => {
+    if (!address) {
+      toast.error('Conecte sua wallet primeiro');
+      return null;
+    }
+
+    if (address !== managerOwner) {
+      toast.error('Apenas o owner do manager pode executar esta operação');
+      return null;
+    }
+
+    setIsLoading(true);
+    try {
+      const hash = await writeContractAsync({
+        address: effectiveManagerAddress,
+        abi: SafeModuleManagerABI,
+        functionName: 'replaceSafeOwnerInAll',
+        args: [prevOwner, oldOwner, newOwner],
+      });
+
+      toast.success('Replacing owner in all Safes! Aguardando confirmação...');
+      return hash;
+    } catch (error: any) {
+      console.error('Error replacing owner in all:', error);
+      toast.error(`Erro ao substituir owner: ${error.message || 'Erro desconhecido'}`);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Change threshold in all managed Safes
+  const changeSafeThresholdInAll = async (threshold: number) => {
+    if (!address) {
+      toast.error('Conecte sua wallet primeiro');
+      return null;
+    }
+
+    if (address !== managerOwner) {
+      toast.error('Apenas o owner do manager pode executar esta operação');
+      return null;
+    }
+
+    setIsLoading(true);
+    try {
+      const hash = await writeContractAsync({
+        address: effectiveManagerAddress,
+        abi: SafeModuleManagerABI,
+        functionName: 'changeSafeThresholdInAll',
+        args: [BigInt(threshold)],
+      });
+
+      toast.success('Changing threshold in all Safes! Aguardando confirmação...');
+      return hash;
+    } catch (error: any) {
+      console.error('Error changing threshold in all:', error);
+      toast.error(`Erro ao alterar threshold: ${error.message || 'Erro desconhecido'}`);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     // State
     isLoading,
@@ -130,5 +258,11 @@ export function useModuleManager(managerAddress?: Address) {
     createModuleForSafe,
     addModuleForSafe,
     setSafeToModule,
+
+    // Cross-module operations
+    addSafeOwnerToAll,
+    removeSafeOwnerFromAll,
+    replaceSafeOwnerInAll,
+    changeSafeThresholdInAll,
   };
 }

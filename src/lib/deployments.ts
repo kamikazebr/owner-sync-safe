@@ -70,14 +70,9 @@ export function getManagedSafeModuleAddress(chainId: number): Address | undefine
  */
 export function getBlockExplorerUrl(chainId: number): string {
   const explorers: Record<number, string> = {
-    1: 'https://etherscan.io',
     100: 'https://gnosisscan.io',
-    8453: 'https://basescan.org',
-    11155111: 'https://sepolia.etherscan.io',
-    84532: 'https://sepolia.basescan.org',
-    31337: 'http://localhost:8545',
   };
-  return explorers[chainId] || 'https://etherscan.io';
+  return explorers[chainId] || 'https://gnosisscan.io';
 }
 
 /**
