@@ -92,17 +92,17 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }: CreateGroupModa
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
-            <Shield className="h-6 w-6 text-blue-600" />
-            <h2 className="text-xl font-bold text-gray-900">Create Sync Group</h2>
+            <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create Sync Group</h2>
           </div>
           <button
             onClick={onClose}
             disabled={isPending || isConfirming}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
           >
             <X className="h-5 w-5" />
           </button>
@@ -112,12 +112,12 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }: CreateGroupModa
         <form onSubmit={handleSubmit} className="px-6 py-6 space-y-6">
           {/* Registry Not Deployed Warning */}
           {!isRegistryDeployed && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
               <div className="flex gap-3">
-                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-red-900">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-red-900 dark:text-red-100">
                   <p className="font-medium mb-1">SyncGroupRegistry Not Deployed</p>
-                  <p className="text-red-800">
+                  <p className="text-red-800 dark:text-red-200">
                     The SyncGroupRegistry contract is not deployed on chain {chainId || 100}. Please deploy it first or switch to a supported chain.
                   </p>
                 </div>
@@ -127,12 +127,12 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }: CreateGroupModa
 
           {/* Wallet Not Connected Warning */}
           {!address && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
               <div className="flex gap-3">
-                <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-yellow-900">
+                <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-yellow-900 dark:text-yellow-100">
                   <p className="font-medium mb-1">Wallet Not Connected</p>
-                  <p className="text-yellow-800">
+                  <p className="text-yellow-800 dark:text-yellow-200">
                     Please connect your wallet to create a sync group. The connected address will be used as the governance Safe.
                   </p>
                 </div>
@@ -141,12 +141,12 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }: CreateGroupModa
           )}
 
           {/* Info Banner */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <div className="flex gap-3">
-              <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-900">
+              <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-900 dark:text-blue-100">
                 <p className="font-medium mb-1">What is a Sync Group?</p>
-                <p className="text-blue-800">
+                <p className="text-blue-800 dark:text-blue-200">
                   A sync group allows you to synchronize owners across multiple Safes. Each group has
                   its own isolated contracts managed by a governance Safe.
                 </p>
@@ -156,8 +156,8 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }: CreateGroupModa
 
           {/* Group Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Group Name <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Group Name <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="text"
@@ -165,16 +165,16 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }: CreateGroupModa
               onChange={(e) => setGroupName(e.target.value)}
               placeholder="e.g., Treasury Safes, DAO Multisigs"
               disabled={isPending || isConfirming}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500"
             />
           </div>
 
           {/* Governance Safe Address */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Governance Safe <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Governance Safe <span className="text-red-500 dark:text-red-400">*</span>
             </label>
-            <p className="text-xs text-gray-500 mb-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
               The Safe that will control this sync group. This Safe doesn't need to hold any funds.
             </p>
 
@@ -186,9 +186,9 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }: CreateGroupModa
                   checked={useConnectedAddress}
                   onChange={(e) => setUseConnectedAddress(e.target.checked)}
                   disabled={isPending || isConfirming}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-500 focus:ring-blue-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">
+                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                   Use connected address ({address?.slice(0, 6)}...{address?.slice(-4)})
                 </span>
               </label>
@@ -201,27 +201,27 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }: CreateGroupModa
                 onChange={(e) => setGovernanceSafe(e.target.value)}
                 placeholder="0x..."
                 disabled={isPending || isConfirming}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 font-mono text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 font-mono text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500"
               />
             )}
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
               <div className="flex gap-2">
-                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
-                <p className="text-sm text-red-800">{error}</p>
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
               </div>
             </div>
           )}
 
           {/* Success Message */}
           {isSuccess && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
               <div className="flex gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                <div className="text-sm text-green-800">
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <div className="text-sm text-green-800 dark:text-green-200">
                   <p className="font-medium">Group created successfully!</p>
                   {hash && (
                     <p className="mt-1 text-xs font-mono">
@@ -239,14 +239,14 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }: CreateGroupModa
               type="button"
               onClick={onClose}
               disabled={isPending || isConfirming}
-              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPending || isConfirming || !groupName.trim() || !governanceSafe}
-              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isPending || isConfirming ? (
                 <>
