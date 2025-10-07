@@ -264,7 +264,7 @@ export function OwnerSync({ moduleAddress, safeAddress }: OwnerSyncProps) {
                   max="50"
                   value={moduleConfig.maxSyncOwners}
                   onChange={(e) => handleMaxSyncChange(parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
                 />
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>1</span>

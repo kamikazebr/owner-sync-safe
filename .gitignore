@@ -19,3 +19,4 @@ broadcast/**
 .vscode/settings.json
 .env
 .next/
+.vercel

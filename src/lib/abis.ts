@@ -73,6 +73,27 @@ export const SafeModuleManagerABI = [
     "type": "function"
   },
   {
+    "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "name": "isModuleActive",
+    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllModules",
+    "outputs": [{"internalType": "address[]", "name": "", "type": "address[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "safe", "type": "address"}],
+    "name": "removeSafeFromNetwork",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "owner",
     "outputs": [{"internalType": "address", "name": "", "type": "address"}],

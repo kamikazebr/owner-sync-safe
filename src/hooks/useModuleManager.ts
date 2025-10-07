@@ -7,23 +7,25 @@ import { SafeModuleManagerABI } from '@/lib/abis';
 import { getContractAddresses } from '@/lib/contracts';
 import toast from 'react-hot-toast';
 
-export function useModuleManager() {
+export function useModuleManager(managerAddress?: Address) {
   const { address } = useAccount();
   const chainId = useChainId();
   const { writeContractAsync } = useWriteContract();
   const [isLoading, setIsLoading] = useState(false);
 
+  // Use provided manager address or fall back to global/deployed address
   const contractAddresses = getContractAddresses(chainId);
+  const effectiveManagerAddress = managerAddress || contractAddresses.SafeModuleManager;
 
   // Read functions
   const { data: managerOwner } = useReadContract({
-    address: contractAddresses.SafeModuleManager,
+    address: effectiveManagerAddress,
     abi: SafeModuleManagerABI,
     functionName: 'owner',
   });
 
   const { data: version } = useReadContract({
-    address: contractAddresses.SafeModuleManager,
+    address: effectiveManagerAddress,
     abi: SafeModuleManagerABI,
     functionName: 'VERSION',
   });
@@ -39,7 +41,7 @@ export function useModuleManager() {
     setIsLoading(true);
     try {
       const hash = await writeContractAsync({
-        address: contractAddresses.SafeModuleManager,
+        address: effectiveManagerAddress,
         abi: SafeModuleManagerABI,
         functionName: 'createModuleForSafe',
         args: [safeAddress],
@@ -66,7 +68,7 @@ export function useModuleManager() {
     setIsLoading(true);
     try {
       const hash = await writeContractAsync({
-        address: contractAddresses.SafeModuleManager,
+        address: effectiveManagerAddress,
         abi: SafeModuleManagerABI,
         functionName: 'addModuleForSafe',
       });
@@ -97,7 +99,7 @@ export function useModuleManager() {
     setIsLoading(true);
     try {
       const hash = await writeContractAsync({
-        address: contractAddresses.SafeModuleManager,
+        address: effectiveManagerAddress,
         abi: SafeModuleManagerABI,
         functionName: 'setSafeToModule',
         args: [safeAddress, moduleAddress],
@@ -119,7 +121,7 @@ export function useModuleManager() {
     isLoading,
 
     // Contract info
-    managerAddress: contractAddresses.SafeModuleManager,
+    managerAddress: effectiveManagerAddress,
     managerOwner,
     version,
     isManagerOwner: address === managerOwner,

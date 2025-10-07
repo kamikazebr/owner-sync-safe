@@ -267,6 +267,20 @@ upgrade-module-template:
 	--broadcast \
 	-vvv
 
+# Deploy SyncGroupRegistry to Gnosis Chain
+deploy-registry-gnosis:
+	@echo "Deploying SyncGroupRegistry to Gnosis Chain..."
+	-forge script script/DeployRegistry.s.sol:DeployRegistry \
+	--rpc-url $(RPC_URL_GNOSIS) \
+	--account pkf \
+	--chain-id 100 \
+	--with-gas-price 5gwei \
+	--priority-gas-price 1gwei \
+	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY) \
+	-vvv
+
 # Check contract sizes to ensure they fit within limits
 check-sizes:
 	forge build --sizes

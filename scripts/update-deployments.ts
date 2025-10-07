@@ -21,6 +21,7 @@ interface BroadcastFile {
 interface ChainDeployments {
   SafeModuleManager?: string;
   ManagedSafeModule?: string;
+  SyncGroupRegistry?: string;
 }
 
 const BROADCAST_DIR = path.join(process.cwd(), 'broadcast');
@@ -57,12 +58,30 @@ function findBroadcastFiles(): Array<{ path: string; chainId: number }> {
 function extractDeployments(broadcastFile: BroadcastFile): ChainDeployments {
   const deployments: ChainDeployments = {};
 
-  // Find ERC1967Proxy (this is the SafeModuleManager proxy - main contract)
-  const proxyTx = broadcastFile.transactions.find(
+  // Find all ERC1967Proxy deployments
+  const proxyTransactions = broadcastFile.transactions.filter(
     tx => tx.contractName === 'ERC1967Proxy'
   );
-  if (proxyTx) {
-    deployments.SafeModuleManager = proxyTx.contractAddress.toLowerCase();
+
+  // Determine which proxy is which based on initialization arguments
+  for (const proxyTx of proxyTransactions) {
+    if (proxyTx.arguments && proxyTx.arguments.length >= 2) {
+      const initData = proxyTx.arguments[1] as string;
+
+      // Check if it's initializing SafeModuleManager (has initialize with 2 params)
+      if (initData.includes('cd6a16c1')) { // initialize(ManagedSafeModule,address) selector
+        deployments.SafeModuleManager = proxyTx.contractAddress.toLowerCase();
+      }
+      // Check if it's initializing SyncGroupRegistry (has initialize with 3 params: address,address,address)
+      else if (initData.includes('c0c53b8b')) { // initialize(address,address,address) selector
+        deployments.SyncGroupRegistry = proxyTx.contractAddress.toLowerCase();
+      }
+    }
+  }
+
+  // If we couldn't determine by init data, use the old method (first proxy is SafeModuleManager)
+  if (!deployments.SafeModuleManager && !deployments.SyncGroupRegistry && proxyTransactions.length > 0) {
+    deployments.SafeModuleManager = proxyTransactions[0].contractAddress.toLowerCase();
   }
 
   // Find ManagedSafeModule implementation
@@ -81,19 +100,24 @@ function generateDeploymentsFile(deploymentsByChain: Record<number, ChainDeploym
     .sort(([a], [b]) => parseInt(a) - parseInt(b))
     .map(([chainId, deployments]) => {
       const chainName = getChainName(parseInt(chainId));
+      const entries = [];
+      if (deployments.SafeModuleManager) entries.push(`SafeModuleManager: '${deployments.SafeModuleManager}'`);
+      if (deployments.ManagedSafeModule) entries.push(`ManagedSafeModule: '${deployments.ManagedSafeModule}'`);
+      if (deployments.SyncGroupRegistry) entries.push(`SyncGroupRegistry: '${deployments.SyncGroupRegistry}'`);
+
       return `  // ${chainName}
   ${chainId}: {
-    SafeModuleManager: '${deployments.SafeModuleManager}',
-    ManagedSafeModule: '${deployments.ManagedSafeModule}',
-  },`;
+    ${entries.join(',\n    ')},
+  }`;
     })
-    .join('\n');
+    .join(',\n');
 
   return `import { Address } from 'viem';
 
 export interface ChainDeployments {
   SafeModuleManager?: Address;
   ManagedSafeModule?: Address;
+  SyncGroupRegistry?: Address;
   OwnerModuleFactory?: Address;
   ControlOwnerModule?: Address;
 }
@@ -115,6 +139,23 @@ ${chainEntries}
  */
 export function getDeploymentAddresses(chainId: number): ChainDeployments {
   return DEPLOYMENT_ADDRESSES[chainId] || {};
+}
+
+/**
+ * Get deployed address for a specific contract on a chain
+ */
+export function getDeployedAddress(
+  chainId: number,
+  contractName: keyof ChainDeployments
+): Address | undefined {
+  const addresses = getDeploymentAddresses(chainId);
+  const address = addresses[contractName];
+
+  console.log(\`[Deployments] Getting \${contractName} for chain \${chainId}\`);
+  console.log(\`[Deployments] Available contracts:\`, Object.keys(addresses));
+  console.log(\`[Deployments] Address found:\`, address);
+
+  return address;
 }
 
 /**
@@ -154,6 +195,7 @@ export function getBlockExplorerUrl(chainId: number): string {
 export const CONTRACT_VERSIONS = {
   SafeModuleManager: 'v2.0.0-uups',
   ManagedSafeModule: 'v2.0.0-uups',
+  SyncGroupRegistry: 'v1.0.0-uups',
 } as const;
 `;
 }
@@ -186,8 +228,15 @@ function main() {
 
     const deployments = extractDeployments(broadcast);
 
-    if (deployments.SafeModuleManager || deployments.ManagedSafeModule) {
-      deploymentsByChain[chainId] = deployments;
+    if (deployments.SafeModuleManager || deployments.ManagedSafeModule || deployments.SyncGroupRegistry) {
+      // Merge with existing deployments for this chain instead of replacing
+      if (!deploymentsByChain[chainId]) {
+        deploymentsByChain[chainId] = {};
+      }
+      deploymentsByChain[chainId] = {
+        ...deploymentsByChain[chainId],
+        ...deployments,
+      };
 
       console.log(`✅ Chain ${chainId} (${getChainName(chainId)}):`);
       if (deployments.SafeModuleManager) {
@@ -195,6 +244,9 @@ function main() {
       }
       if (deployments.ManagedSafeModule) {
         console.log(`   ManagedSafeModule: ${deployments.ManagedSafeModule}`);
+      }
+      if (deployments.SyncGroupRegistry) {
+        console.log(`   SyncGroupRegistry: ${deployments.SyncGroupRegistry}`);
       }
     }
   }
