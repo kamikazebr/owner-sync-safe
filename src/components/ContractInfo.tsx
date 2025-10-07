@@ -36,30 +36,30 @@ export function ContractInfo({ safeInfo }: ContractInfoProps = {}) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
       <div className="flex items-center space-x-3 mb-4">
-        <Code className="h-6 w-6 text-blue-600" />
-        <h2 className="text-lg font-semibold text-gray-900">System Contracts</h2>
+        <Code className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">System Contracts</h2>
       </div>
 
       <div className="space-y-4">
         {managerAddress && (
-          <div className="border rounded-lg p-4">
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-gray-900">SafeModuleManager (Proxy)</h3>
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+              <h3 className="font-medium text-gray-900 dark:text-white">SafeModuleManager (Proxy)</h3>
+              <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded">
                 {CONTRACT_VERSIONS.SafeModuleManager}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <code className="text-sm text-gray-600 font-mono">
+              <code className="text-sm text-gray-600 dark:text-gray-400 font-mono">
                 {truncateAddress(managerAddress, 10)}
               </code>
               <a
                 href={`${explorerUrl}/address/${managerAddress}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
+                className="flex items-center space-x-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
               >
                 <span>View on Explorer</span>
                 <ExternalLink className="h-4 w-4" />
@@ -69,22 +69,22 @@ export function ContractInfo({ safeInfo }: ContractInfoProps = {}) {
         )}
 
         {moduleAddress && (
-          <div className="border rounded-lg p-4">
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-gray-900">ManagedSafeModule (Template)</h3>
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+              <h3 className="font-medium text-gray-900 dark:text-white">ManagedSafeModule (Template)</h3>
+              <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded">
                 {CONTRACT_VERSIONS.ManagedSafeModule}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <code className="text-sm text-gray-600 font-mono">
+              <code className="text-sm text-gray-600 dark:text-gray-400 font-mono">
                 {truncateAddress(moduleAddress, 10)}
               </code>
               <a
                 href={`${explorerUrl}/address/${moduleAddress}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
+                className="flex items-center space-x-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
               >
                 <span>View on Explorer</span>
                 <ExternalLink className="h-4 w-4" />
@@ -94,14 +94,14 @@ export function ContractInfo({ safeInfo }: ContractInfoProps = {}) {
         )}
       </div>
 
-      <div className="mt-4 pt-4 border-t">
-        <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
           <span>Chain ID: {chainId}</span>
           <a
             href={explorerUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center space-x-1"
           >
             <span>{explorerUrl.replace('https://', '').replace('http://', '')}</span>
             <ExternalLink className="h-3 w-3" />
@@ -110,10 +110,10 @@ export function ContractInfo({ safeInfo }: ContractInfoProps = {}) {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mt-6">
         <div className="flex items-center space-x-3 mb-4">
-          <Shield className="h-6 w-6 text-purple-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+          <Shield className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
         </div>
 
         <div className="space-y-3">
@@ -123,37 +123,37 @@ export function ContractInfo({ safeInfo }: ContractInfoProps = {}) {
               href={`https://app.safe.global/apps/open?safe=${getChainPrefix(Number(safeInfo.chainId))}:${safeInfo.safeAddress}&appUrl=${encodeURIComponent('https://zodiac.gnosisguild.org/')}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between p-4 border border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all group"
+              className="flex items-center justify-between p-4 border border-purple-200 dark:border-purple-800 rounded-lg hover:border-purple-400 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all group"
             >
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                  <Shield className="h-5 w-5 text-purple-600" />
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg group-hover:bg-purple-200 dark:group-hover:bg-purple-900/70 transition-colors">
+                  <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-900">Enable Module on Zodiac</h3>
-                  <p className="text-sm text-gray-600">Open Zodiac app to enable modules on your Safe</p>
+                  <h3 className="font-medium text-gray-900 dark:text-white">Enable Module on Zodiac</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Open Zodiac app to enable modules on your Safe</p>
                 </div>
               </div>
-              <ExternalLink className="h-5 w-5 text-purple-600 group-hover:translate-x-1 transition-transform" />
+              <ExternalLink className="h-5 w-5 text-purple-600 dark:text-purple-400 group-hover:translate-x-1 transition-transform" />
             </a>
           ) : (
             // Without Safe Context - Informational card
-            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900/30">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <Info className="h-5 w-5 text-gray-500" />
+                <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                  <Info className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-700">Enable Module on Zodiac</h3>
-                  <p className="text-sm text-gray-500">Open this app inside a Safe to use Quick Actions</p>
+                  <h3 className="font-medium text-gray-700 dark:text-gray-300">Enable Module on Zodiac</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Open this app inside a Safe to use Quick Actions</p>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        <div className="mt-4 pt-4 border-t">
-          <p className="text-xs text-gray-500">
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             {safeInfo
               ? 'Use Zodiac to enable the ManagedSafeModule on your Safe. This is required for owner synchronization.'
               : 'Quick Actions are available when running this app inside a Safe. Load this app as a Safe App to access module management features.'}

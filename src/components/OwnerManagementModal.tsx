@@ -147,19 +147,19 @@ export function OwnerManagementModal({
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="bg-black/50 fixed inset-0 z-50" />
-        <Dialog.Content className="bg-white fixed inset-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg sm:rounded-lg z-50 flex flex-col max-h-screen sm:max-h-[90vh]">
+        <Dialog.Content className="bg-white dark:bg-gray-800 fixed inset-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg sm:rounded-lg z-50 flex flex-col max-h-screen sm:max-h-[90vh]">
           {/* Header - Fixed */}
-          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div>
-              <Dialog.Title className="text-lg font-semibold text-gray-900">
+              <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
                 Manage Owners - All Safes
               </Dialog.Title>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Changes will be applied to all {safes?.length || 0} Safes in the group
               </p>
             </div>
             <Dialog.Close asChild>
-              <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+              <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </Dialog.Close>
@@ -168,14 +168,14 @@ export function OwnerManagementModal({
           {/* Tabs + Content - Scrollable */}
           <Tabs.Root value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
             {/* Tabs List - Scrollable horizontally on mobile */}
-            <Tabs.List className="flex border-b border-gray-200 overflow-x-auto flex-shrink-0 px-4 sm:px-6">
+            <Tabs.List className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto flex-shrink-0 px-4 sm:px-6">
               <Tabs.Trigger
                 value="addOwner"
                 className={cn(
                   'flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
                   activeTab === 'addOwner'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 )}
               >
                 <UserPlus className="h-4 w-4" />
@@ -186,8 +186,8 @@ export function OwnerManagementModal({
                 className={cn(
                   'flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
                   activeTab === 'removeOwner'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 )}
               >
                 <UserMinus className="h-4 w-4" />
@@ -198,8 +198,8 @@ export function OwnerManagementModal({
                 className={cn(
                   'flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
                   activeTab === 'replaceOwner'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 )}
               >
                 <UserCheck className="h-4 w-4" />
@@ -210,8 +210,8 @@ export function OwnerManagementModal({
                 className={cn(
                   'flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
                   activeTab === 'changeThreshold'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 )}
               >
                 <Hash className="h-4 w-4" />
@@ -222,16 +222,16 @@ export function OwnerManagementModal({
             {/* Tab Content - Scrollable */}
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
               {/* Current Owners Info */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
-                  <UserCheck className="h-4 w-4 text-blue-600" />
+              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <UserCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   Current Owners ({owners.length})
                 </h3>
 
                 {owners.length === 0 ? (
                   <div className="space-y-3">
-                    <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-900">
-                      <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded text-xs text-yellow-900 dark:text-yellow-400">
+                      <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
                       <p>
                         No owners found. Make sure at least one Safe is configured in the group.
                       </p>
@@ -243,17 +243,17 @@ export function OwnerManagementModal({
                       {owners.map((owner, index) => (
                         <div
                           key={owner}
-                          className="flex items-center justify-between p-2 bg-white rounded text-xs"
+                          className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded text-xs"
                         >
-                          <span className="font-mono">{truncateAddress(owner, 8)}</span>
-                          <span className="text-gray-500">#{index + 1}</span>
+                          <span className="font-mono text-gray-900 dark:text-gray-100">{truncateAddress(owner, 8)}</span>
+                          <span className="text-gray-500 dark:text-gray-400">#{index + 1}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Threshold:</span>
-                        <span className="font-medium">{threshold}/{owners.length}</span>
+                        <span className="text-gray-600 dark:text-gray-400">Threshold:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{threshold}/{owners.length}</span>
                       </div>
                     </div>
                   </>
@@ -286,14 +286,14 @@ export function OwnerManagementModal({
                     onChange={(e) => setOperation({ ...operation, newThreshold: parseInt(e.target.value) })}
                     className={theme.input.base}
                   />
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Range: 1-{owners.length + 1}
                   </p>
                 </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <div className="flex gap-2">
-                    <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-blue-900">
+                    <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-900 dark:text-blue-300">
                       This will propose a transaction to add a new owner to the Safe.
                     </p>
                   </div>
@@ -331,14 +331,14 @@ export function OwnerManagementModal({
                     onChange={(e) => setOperation({ ...operation, newThreshold: parseInt(e.target.value) })}
                     className={theme.input.base}
                   />
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Range: 1-{Math.max(1, owners.length - 1)}
                   </p>
                 </div>
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
                   <div className="flex gap-2">
-                    <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-red-900">
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-900 dark:text-red-300">
                       This will propose a transaction to remove an owner from the Safe.
                     </p>
                   </div>
@@ -376,10 +376,10 @@ export function OwnerManagementModal({
                     className={theme.input.base}
                   />
                 </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <div className="flex gap-2">
-                    <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-blue-900">
+                    <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-900 dark:text-blue-300">
                       This will propose a transaction to replace an existing owner with a new one.
                     </p>
                   </div>
@@ -400,14 +400,14 @@ export function OwnerManagementModal({
                     onChange={(e) => setOperation({ ...operation, newThreshold: parseInt(e.target.value) })}
                     className={theme.input.base}
                   />
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Current: {threshold} | Range: 1-{owners.length}
                   </p>
                 </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <div className="flex gap-2">
-                    <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-blue-900">
+                    <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-900 dark:text-blue-300">
                       This will propose a transaction to change the number of required confirmations.
                     </p>
                   </div>
@@ -417,16 +417,16 @@ export function OwnerManagementModal({
           </Tabs.Root>
 
           {/* Footer - Fixed */}
-          <div className="flex gap-3 px-4 sm:px-6 py-4 border-t border-gray-200 flex-shrink-0">
+          <div className="flex gap-3 px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
             <Dialog.Close asChild>
-              <button className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+              <button className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium">
                 Cancel
               </button>
             </Dialog.Close>
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

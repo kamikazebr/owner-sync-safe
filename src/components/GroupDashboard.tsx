@@ -279,22 +279,22 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
       {/* Contract Info Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         {/* Manager Info */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div className="flex items-center mb-3">
-            <Shield className="h-4 w-4 text-blue-600 mr-2" />
-            <h3 className="text-sm font-semibold text-gray-900">Manager Contract</h3>
+            <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Manager Contract</h3>
           </div>
 
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-sm font-mono text-gray-700 truncate">
+            <code className="flex-1 text-sm font-mono text-gray-700 dark:text-gray-300 truncate">
               {truncateAddress(group.manager as Address)}
             </code>
             <button
               onClick={() => handleCopy(group.manager, 'manager')}
-              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
             >
               {copiedField === 'manager' ? (
-                <Check className="h-3.5 w-3.5 text-green-600" />
+                <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
               ) : (
                 <Copy className="h-3.5 w-3.5" />
               )}
@@ -303,7 +303,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
               href={`${explorerUrl}/address/${group.manager}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
@@ -311,22 +311,22 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
         </div>
 
         {/* Template Info */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div className="flex items-center mb-3">
-            <Settings className="h-4 w-4 text-purple-600 mr-2" />
-            <h3 className="text-sm font-semibold text-gray-900">Module Template</h3>
+            <Settings className="h-4 w-4 text-purple-600 dark:text-purple-400 mr-2" />
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Module Template</h3>
           </div>
 
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-sm font-mono text-gray-700 truncate">
+            <code className="flex-1 text-sm font-mono text-gray-700 dark:text-gray-300 truncate">
               {truncateAddress(group.template as Address)}
             </code>
             <button
               onClick={() => handleCopy(group.template, 'template')}
-              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
             >
               {copiedField === 'template' ? (
-                <Check className="h-3.5 w-3.5 text-green-600" />
+                <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
               ) : (
                 <Copy className="h-3.5 w-3.5" />
               )}
@@ -335,7 +335,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
               href={`${explorerUrl}/address/${group.template}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
@@ -343,22 +343,22 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
         </div>
 
         {/* Governance Safe */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div className="flex items-center mb-3">
-            <Users className="h-4 w-4 text-green-600 mr-2" />
-            <h3 className="text-sm font-semibold text-gray-900">Governance Safe</h3>
+            <Users className="h-4 w-4 text-green-600 dark:text-green-400 mr-2" />
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Governance Safe</h3>
           </div>
 
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-sm font-mono text-gray-700 truncate">
+            <code className="flex-1 text-sm font-mono text-gray-700 dark:text-gray-300 truncate">
               {truncateAddress(group.owner as Address)}
             </code>
             <button
               onClick={() => handleCopy(group.owner, 'owner')}
-              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
             >
               {copiedField === 'owner' ? (
-                <Check className="h-3.5 w-3.5 text-green-600" />
+                <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
               ) : (
                 <Copy className="h-3.5 w-3.5" />
               )}
@@ -367,7 +367,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
               href={`${explorerUrl}/address/${group.owner}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
@@ -376,15 +376,15 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
       </div>
 
       {/* Add Safe to Group Section */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <Plus className="h-5 w-5 mr-2 text-blue-600" />
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+          <Plus className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
           Add Safe to Group
         </h3>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Safe Address
             </label>
             <div className="flex gap-2">
@@ -393,13 +393,13 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
                 value={safeToAdd}
                 onChange={(e) => setSafeToAdd(e.target.value)}
                 placeholder="0x..."
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500"
                 disabled={isAddingSafe || isCreatingModule}
               />
               <button
                 onClick={handleAddSafe}
                 disabled={isAddingSafe || isCreatingModule || !safeToAdd.trim()}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isAddingSafe || isCreatingModule ? (
                   <>
@@ -415,16 +415,16 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
               </button>
             </div>
             {addSafeError && (
-              <p className="mt-2 text-sm text-red-600">{addSafeError}</p>
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">{addSafeError}</p>
             )}
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <div className="flex gap-3">
-              <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-900">
+              <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-900 dark:text-blue-300">
                 <p className="font-medium mb-1">After adding a Safe</p>
-                <ol className="list-decimal list-inside space-y-1 text-blue-800">
+                <ol className="list-decimal list-inside space-y-1 text-blue-800 dark:text-blue-400">
                   <li>The module will be created for the Safe</li>
                   <li>The Safe owners must enable the module via Safe's interface</li>
                   <li>Once enabled, owners can be synchronized across the group</li>
@@ -453,35 +453,35 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
 
         {isLoadingSafes && safes.length === 0 ? (
           <div className="text-center py-8">
-            <Loader2 className="h-8 w-8 mx-auto mb-2 text-gray-400 animate-spin" />
-            <p className="text-sm text-gray-500">Loading Safes...</p>
+            <Loader2 className="h-8 w-8 mx-auto mb-2 text-gray-400 dark:text-gray-500 animate-spin" />
+            <p className="text-sm text-gray-500 dark:text-gray-400">Loading Safes...</p>
           </div>
         ) : safes.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Users className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <Users className="h-12 w-12 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
             <p className="text-sm">No Safes added to this group yet</p>
-            <p className="text-xs text-gray-400 mt-1">Add a Safe above to get started</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Add a Safe above to get started</p>
           </div>
         ) : (
           <div className="space-y-3">
             {safes.map((safe) => (
               <div
                 key={safe.moduleAddress}
-                className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors bg-gray-50 dark:bg-gray-900/30"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-medium text-gray-700">Safe Address:</span>
-                      <code className="text-sm font-mono text-gray-900 truncate">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Safe Address:</span>
+                      <code className="text-sm font-mono text-gray-900 dark:text-gray-100 truncate">
                         {safe.safeAddress}
                       </code>
                       <button
                         onClick={() => handleCopy(safe.safeAddress, `safe-${safe.safeAddress}`)}
-                        className="p-1 text-gray-500 hover:text-gray-700"
+                        className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                       >
                         {copiedField === `safe-${safe.safeAddress}` ? (
-                          <Check className="h-3 w-3 text-green-600" />
+                          <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
                         ) : (
                           <Copy className="h-3 w-3" />
                         )}
@@ -490,23 +490,23 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
                         href={`${explorerUrl}/address/${safe.safeAddress}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1 text-gray-500 hover:text-gray-700"
+                        className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                       >
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">Module:</span>
-                      <code className="text-xs font-mono text-gray-600 truncate">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Module:</span>
+                      <code className="text-xs font-mono text-gray-600 dark:text-gray-400 truncate">
                         {safe.moduleAddress}
                       </code>
                       <button
                         onClick={() => handleCopy(safe.moduleAddress, `module-${safe.moduleAddress}`)}
-                        className="p-1 text-gray-500 hover:text-gray-700"
+                        className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                       >
                         {copiedField === `module-${safe.moduleAddress}` ? (
-                          <Check className="h-3 w-3 text-green-600" />
+                          <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
                         ) : (
                           <Copy className="h-3 w-3" />
                         )}
@@ -556,39 +556,39 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
       <Dialog.Root open={showDeactivateConfirm} onOpenChange={setShowDeactivateConfirm}>
         <Dialog.Portal>
           <Dialog.Overlay className="bg-black/50 fixed inset-0 z-50" />
-          <Dialog.Content className="bg-white rounded-lg p-6 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50">
+          <Dialog.Content className="bg-white dark:bg-gray-800 rounded-lg p-6 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50">
             <div className="flex items-center justify-between mb-4">
-              <Dialog.Title className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-red-600" />
+              <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
                 Deactivate Group
               </Dialog.Title>
               <Dialog.Close asChild>
-                <button className="p-1 text-gray-400 hover:text-gray-600 rounded">
+                <button className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded">
                   <X className="h-5 w-5" />
                 </button>
               </Dialog.Close>
             </div>
 
             <div className="space-y-4">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Are you sure you want to deactivate "<strong>{group?.name}</strong>"?
               </p>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-sm text-yellow-800">
+              <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                <p className="text-sm text-yellow-800 dark:text-yellow-300">
                   ⚠️ This action will disable owner synchronization for all Safes in this group. This cannot be undone.
                 </p>
               </div>
 
               <div className="flex gap-3 pt-2">
                 <Dialog.Close asChild>
-                  <button className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                  <button className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     Cancel
                   </button>
                 </Dialog.Close>
                 <button
                   onClick={handleDeactivateViaSdk}
                   disabled={isDeactivating}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {isDeactivating ? (
                     <>
