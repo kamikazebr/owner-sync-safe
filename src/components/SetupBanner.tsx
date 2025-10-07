@@ -45,7 +45,7 @@ export function SetupBanner({
   const [showModal, setShowModal] = useState(false);
   const [selectedSetup, setSelectedSetup] = useState<PendingSetupInfo | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed
   const { chainId } = useAccount();
 
   if (pendingSetups.length === 0) return null;

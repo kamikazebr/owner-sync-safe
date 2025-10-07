@@ -15,6 +15,7 @@ import { SetupBanner } from '@/components/SetupBanner';
 import { ActiveGroupsBanner } from '@/components/ActiveGroupsBanner';
 import { CompactActiveGroupBanner } from '@/components/CompactActiveGroupBanner';
 import { Home, Users, Shield } from 'lucide-react';
+import { SafeAppRedirectBanner } from '@/components/SafeAppRedirectBanner';
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
@@ -79,6 +80,11 @@ function HomeClient() {
   return (
     <>
       <Toaster position="top-right" />
+
+      {/* Show redirect banner when NOT in Safe App */}
+      {!isSafeApp && !safeLoading && (
+        <SafeAppRedirectBanner />
+      )}
 
       <AppLayout
         activeView={activeView}
@@ -202,7 +208,7 @@ function HomeClient() {
             </div>
 
             {/* System Contracts */}
-            <ContractInfo />
+            <ContractInfo safeInfo={safeInfo} />
 
             {/* Future Settings */}
             <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">

@@ -14,6 +14,7 @@ export interface GroupSafe {
 export function useGroupSafes(managerAddress?: Address, chainId?: number) {
   const [safes, setSafes] = useState<GroupSafe[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshCounter, setRefreshCounter] = useState(0);
   const publicClient = usePublicClient({ chainId });
 
   // Get all modules from the manager
@@ -86,10 +87,12 @@ export function useGroupSafes(managerAddress?: Address, chainId?: number) {
     };
 
     fetchSafes();
-  }, [managerAddress, publicClient, allModules]);
+  }, [managerAddress, publicClient, allModules, refreshCounter]);
 
-  const refetch = () => {
-    refetchModules();
+  const refetch = async () => {
+    await refetchModules();
+    // Increment counter to force useEffect to re-run
+    setRefreshCounter(prev => prev + 1);
   };
 
   return {

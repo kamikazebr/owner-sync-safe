@@ -180,3 +180,27 @@ export function buildSafeAppUrl(
   const chainPrefix = chainId === 100 ? 'gno' : 'eth';
   return `https://app.safe.global/apps/open?safe=${chainPrefix}:${safeAddress}&appUrl=${encodeURIComponent(appUrl)}`;
 }
+
+/**
+ * Encode a SyncGroupRegistry.deactivateGroup() call
+ */
+export function encodeDeactivateGroup(
+  registryAddress: Address,
+  groupId: bigint
+): MetaTransaction {
+  return {
+    to: registryAddress,
+    value: 0n,
+    data: encodeFunctionData({
+      abi: [{
+        name: 'deactivateGroup',
+        type: 'function',
+        inputs: [{ name: 'groupId', type: 'uint256' }],
+        outputs: [],
+        stateMutability: 'nonpayable',
+      }],
+      functionName: 'deactivateGroup',
+      args: [groupId],
+    }),
+  };
+}

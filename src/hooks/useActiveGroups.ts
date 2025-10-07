@@ -136,7 +136,16 @@ export function useActiveGroups(chainId?: number) {
                 abi: REGISTRY_ABI,
                 functionName: 'getGroup',
                 args: [groupId],
-              }) as { name: string; manager: Address; owner: Address };
+              }) as { name: string; manager: Address; owner: Address; active: boolean };
+
+              // Skip if group is inactive
+              if (!group.active) {
+                console.log('[useActiveGroups] Group is inactive, skipping:', {
+                  groupId,
+                  groupName: group.name,
+                });
+                continue;
+              }
 
               console.log('[useActiveGroups] Found active group:', {
                 groupId,

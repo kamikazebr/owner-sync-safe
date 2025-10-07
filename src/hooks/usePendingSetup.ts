@@ -146,7 +146,16 @@ export function usePendingSetup(chainId?: number) {
                 abi: REGISTRY_ABI,
                 functionName: 'getGroup',
                 args: [groupId],
-              }) as { name: string; manager: Address; owner: Address };
+              }) as { name: string; manager: Address; owner: Address; active: boolean };
+
+              // Skip if group is inactive
+              if (!group.active) {
+                console.log('[usePendingSetup] Group is inactive, skipping:', {
+                  groupId,
+                  groupName: group.name,
+                });
+                continue;
+              }
 
               console.log('[usePendingSetup] Found pending setup:', {
                 groupId,

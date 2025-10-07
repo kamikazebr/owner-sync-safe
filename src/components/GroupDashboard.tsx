@@ -2,26 +2,31 @@
 
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
-import { Address, isAddress } from 'viem';
-import { useGroupDetails, useUpdateGroupName, useDeactivateGroup } from '@/hooks/useSyncGroupRegistry';
+import { Address, isAddress, encodeFunctionData } from 'viem';
+import { useGroupDetails } from '@/hooks/useSyncGroupRegistry';
 import { useModuleManager } from '@/hooks/useModuleManager';
 import { useGroupSafes } from '@/hooks/useGroupSafes';
-import { getBlockExplorerUrl } from '@/lib/deployments';
-import { buildSafeAppUrl } from '@/lib/safe-batch';
+import { useSafeApps } from '@/hooks/useSafeApps';
+import { getBlockExplorerUrl, getDeployedAddress } from '@/lib/deployments';
+import { buildSafeAppUrl, encodeDeactivateGroup, buildSafeTransactionBuilderUrl } from '@/lib/safe-batch';
 import {
   Shield,
   Users,
   Settings,
   ExternalLink,
-  Edit2,
   Trash2,
   Copy,
   Check,
   AlertCircle,
   Plus,
-  Loader2
+  Loader2,
+  X,
+  UserCog
 } from 'lucide-react';
 import { cn, truncateAddress } from '@/lib/utils';
+import toast from 'react-hot-toast';
+import * as Dialog from '@radix-ui/react-dialog';
+import { OwnerManagementModal } from '@/components/OwnerManagementModal';
 
 interface GroupDashboardProps {
   groupId: bigint;
@@ -30,17 +35,19 @@ interface GroupDashboardProps {
 export function GroupDashboard({ groupId }: GroupDashboardProps) {
   const { chainId } = useAccount();
   const { group, refetchGroup } = useGroupDetails(groupId, chainId || 100);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [newName, setNewName] = useState('');
+  const { isSafeApp, safeInfo, sdk } = useSafeApps();
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isDeactivating, setIsDeactivating] = useState(false);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+
+  // Owner management modal state
+  const [selectedSafe, setSelectedSafe] = useState<{ safeAddress: string; moduleAddress: string } | null>(null);
+  const [showOwnerModal, setShowOwnerModal] = useState(false);
 
   // Add Safe to group
   const [safeToAdd, setSafeToAdd] = useState('');
   const [isAddingSafe, setIsAddingSafe] = useState(false);
   const [addSafeError, setAddSafeError] = useState('');
-
-  const { updateGroupName, isPending: isUpdating, isSuccess: updateSuccess } = useUpdateGroupName(chainId || 100);
-  const { deactivateGroup, isPending: isDeactivating, isSuccess: deactivateSuccess } = useDeactivateGroup(chainId || 100);
 
   // Use group's manager address
   const { createModuleForSafe, isLoading: isCreatingModule } = useModuleManager(group?.manager as Address);
@@ -52,17 +59,98 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleUpdateName = async () => {
-    if (!newName.trim()) return;
-    await updateGroupName(groupId, newName);
-    setIsEditingName(false);
-    setTimeout(() => refetchGroup(), 2000);
+  // Check if we can execute deactivate directly via Safe SDK
+  const canExecuteDirectly = !!(
+    isSafeApp &&
+    safeInfo &&
+    sdk &&
+    group &&
+    safeInfo.safeAddress.toLowerCase() === group.owner.toLowerCase()
+  );
+
+  // Debug logging
+  console.log('Deactivate Debug:', {
+    isSafeApp,
+    hasSafeInfo: !!safeInfo,
+    hasSdk: !!sdk,
+    hasGroup: !!group,
+    safeAddress: safeInfo?.safeAddress,
+    groupOwner: group?.owner,
+    canExecuteDirectly,
+  });
+
+  const confirmDeactivate = () => {
+    setShowDeactivateConfirm(true);
   };
 
-  const handleDeactivate = async () => {
-    if (!confirm('Are you sure you want to deactivate this group? This action cannot be undone.')) return;
-    await deactivateGroup(groupId);
-    setTimeout(() => refetchGroup(), 2000);
+  const handleDeactivateViaSdk = async () => {
+    console.log('handleDeactivateViaSdk called', { sdk, group, chainId });
+    setShowDeactivateConfirm(false);
+
+    if (!sdk || !group || !chainId) {
+      console.error('Missing required data:', { sdk, group, chainId });
+      toast.error('Missing required data');
+      return;
+    }
+
+    setIsDeactivating(true);
+    console.log('Starting deactivation...');
+
+    try {
+      const registryAddress = getDeployedAddress(chainId, 'SyncGroupRegistry');
+      console.log('Registry address:', registryAddress);
+
+      if (!registryAddress) {
+        toast.error('Registry not found');
+        return;
+      }
+
+      // Encode the deactivateGroup call
+      const data = encodeFunctionData({
+        abi: [{
+          name: 'deactivateGroup',
+          type: 'function',
+          inputs: [{ name: 'groupId', type: 'uint256' }],
+          outputs: [],
+          stateMutability: 'nonpayable',
+        }],
+        functionName: 'deactivateGroup',
+        args: [groupId],
+      });
+
+      console.log('Encoded data:', data);
+      console.log('Sending transaction to Safe SDK...');
+
+      // Send transaction via Safe SDK
+      const { safeTxHash } = await sdk.txs.send({
+        txs: [{
+          to: registryAddress,
+          value: '0',
+          data,
+        }],
+      });
+
+      toast.success('Deactivation transaction proposed! Check Safe to approve.');
+      console.log('Safe TX Hash:', safeTxHash);
+
+      // Refetch group data after a delay
+      setTimeout(() => refetchGroup(), 3000);
+    } catch (error) {
+      console.error('Error deactivating group:', error);
+      toast.error(`Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
+  const getDeactivateGroupUrl = () => {
+    if (!group || !chainId) return '';
+
+    const registryAddress = getDeployedAddress(chainId, 'SyncGroupRegistry');
+    if (!registryAddress) return '';
+
+    const deactivateTransaction = encodeDeactivateGroup(registryAddress as Address, groupId);
+    return buildSafeTransactionBuilderUrl(chainId, group.owner as Address, deactivateTransaction);
   };
 
   const handleAddSafe = async () => {
@@ -120,43 +208,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex-1">
-          {isEditingName ? (
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-xl font-bold text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={group.name}
-              />
-              <button
-                onClick={handleUpdateName}
-                disabled={isUpdating}
-                className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isUpdating ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                onClick={() => setIsEditingName(false)}
-                className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{group.name}</h1>
-              <button
-                onClick={() => {
-                  setNewName(group.name);
-                  setIsEditingName(true);
-                }}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
-              >
-                <Edit2 className="h-4 w-4" />
-              </button>
-            </div>
-          )}
+          <h1 className="text-2xl font-bold text-gray-900">{group.name}</h1>
           <div className="flex items-center gap-2 mt-2">
             <span
               className={cn(
@@ -173,14 +225,43 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
         </div>
 
         {group.active && (
-          <button
-            onClick={handleDeactivate}
-            disabled={isDeactivating}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            {isDeactivating ? 'Deactivating...' : 'Deactivate Group'}
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            {canExecuteDirectly ? (
+              // Direct execution via Safe SDK
+              <button
+                onClick={confirmDeactivate}
+                disabled={isDeactivating}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeactivating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deactivating...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Deactivate Group
+                  </>
+                )}
+              </button>
+            ) : (
+              // Fallback to Transaction Builder
+              <a
+                href={getDeactivateGroupUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Deactivate Group
+                <ExternalLink className="h-3.5 w-3.5 ml-2" />
+              </a>
+            )}
+            <span className="text-xs text-gray-500">
+              {canExecuteDirectly ? 'Proposes transaction in current Safe' : 'Opens in Governance Safe'}
+            </span>
+          </div>
         )}
       </div>
 
@@ -424,7 +505,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
                     </div>
                   </div>
 
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 flex flex-col gap-2">
                     {safe.isActive ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                         <Check className="h-3 w-3 mr-1" />
@@ -448,11 +529,99 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
                     )}
                   </div>
                 </div>
+
+                {/* Manage Owners Button - Full width on mobile, inline on desktop */}
+                {safe.isActive && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setSelectedSafe({
+                          safeAddress: safe.safeAddress,
+                          moduleAddress: safe.moduleAddress
+                        });
+                        setShowOwnerModal(true);
+                      }}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <UserCog className="h-4 w-4" />
+                      Manage Owners
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Owner Management Modal */}
+      {selectedSafe && (
+        <OwnerManagementModal
+          isOpen={showOwnerModal}
+          onClose={() => {
+            setShowOwnerModal(false);
+            setSelectedSafe(null);
+          }}
+          moduleAddress={selectedSafe.moduleAddress as Address}
+          safeAddress={selectedSafe.safeAddress as Address}
+        />
+      )}
+
+      {/* Deactivate Confirmation Modal */}
+      <Dialog.Root open={showDeactivateConfirm} onOpenChange={setShowDeactivateConfirm}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="bg-black/50 fixed inset-0 z-50" />
+          <Dialog.Content className="bg-white rounded-lg p-6 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50">
+            <div className="flex items-center justify-between mb-4">
+              <Dialog.Title className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                Deactivate Group
+              </Dialog.Title>
+              <Dialog.Close asChild>
+                <button className="p-1 text-gray-400 hover:text-gray-600 rounded">
+                  <X className="h-5 w-5" />
+                </button>
+              </Dialog.Close>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Are you sure you want to deactivate "<strong>{group?.name}</strong>"?
+              </p>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ This action will disable owner synchronization for all Safes in this group. This cannot be undone.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Dialog.Close asChild>
+                  <button className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                  </button>
+                </Dialog.Close>
+                <button
+                  onClick={handleDeactivateViaSdk}
+                  disabled={isDeactivating}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  {isDeactivating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Deactivating...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Deactivate
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }
