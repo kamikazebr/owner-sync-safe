@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { AlertCircle, ExternalLink, X, Copy, Check } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { isAddress } from 'viem';
+import { extractSafeAddress } from '@/lib/utils';
 
 const CHAIN_PREFIXES: Record<number, string> = {
   1: 'eth',
@@ -144,11 +145,17 @@ export function SafeAppRedirectBanner() {
                   type="text"
                   placeholder="Enter Safe address or paste Safe App URL"
                   value={safeAddress}
-                  onChange={(e) => setSafeAddress(e.target.value)}
+                  onChange={(e) => {
+                    const input = e.target.value;
+                    // Try to extract address from input (URL, chain:address, or direct address)
+                    const extracted = extractSafeAddress(input);
+                    // If we extracted an address, use it; otherwise keep the raw input for user to see/edit
+                    setSafeAddress(extracted || input);
+                  }}
                   onPaste={(e) => {
                     // On paste, try to parse the pasted content
                     const pastedText = e.clipboardData.getData('text');
-                    const parsed = parseSafeAddress(pastedText);
+                    const parsed = extractSafeAddress(pastedText);
                     if (parsed) {
                       e.preventDefault();
                       setSafeAddress(parsed);

@@ -23,7 +23,7 @@ import {
   X,
   UserCog
 } from 'lucide-react';
-import { cn, truncateAddress } from '@/lib/utils';
+import { cn, truncateAddress, extractSafeAddress } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import * as Dialog from '@radix-ui/react-dialog';
 import { OwnerManagementModal } from '@/components/OwnerManagementModal';
@@ -155,28 +155,37 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
   const handleAddSafe = async () => {
     setAddSafeError('');
 
-    // Validate address
+    // Validate input
     if (!safeToAdd.trim()) {
-      setAddSafeError('Please enter a Safe address');
+      setAddSafeError('Please enter a Safe address or URL');
       return;
     }
 
-    if (!isAddress(safeToAdd)) {
-      setAddSafeError('Invalid Safe address');
+    // Extract address from URL, chain prefix, or direct address
+    const extractedAddress = extractSafeAddress(safeToAdd);
+    console.log('🔍 Debug extractSafeAddress:', {
+      input: safeToAdd,
+      extracted: extractedAddress,
+      isValid: extractedAddress ? isAddress(extractedAddress) : false
+    });
+
+    if (!extractedAddress || !isAddress(extractedAddress)) {
+      setAddSafeError('Invalid Safe address or URL. Accepted formats: URL, chain:address, or 0x...');
       return;
     }
 
     // Check if Safe is already in the group
-    if (safes.some(s => s.safeAddress.toLowerCase() === safeToAdd.toLowerCase())) {
+    if (safes.some(s => s.safeAddress.toLowerCase() === extractedAddress.toLowerCase())) {
       setAddSafeError('This Safe is already in the group');
       return;
     }
 
     setIsAddingSafe(true);
     try {
-      const hash = await createModuleForSafe(safeToAdd as Address);
+      const hash = await createModuleForSafe(extractedAddress as Address);
       if (hash) {
         setSafeToAdd('');
+        toast.success(`Safe ${truncateAddress(extractedAddress as Address)} added to group!`);
         // Refetch safes list after a delay
         setTimeout(() => {
           refetchSafes();
@@ -385,14 +394,14 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Safe Address
+              Safe Address or URL
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={safeToAdd}
                 onChange={(e) => setSafeToAdd(e.target.value)}
-                placeholder="0x..."
+                placeholder="0x... or https://app.safe.global/home?safe=gno:0x..."
                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500"
                 disabled={isAddingSafe || isCreatingModule}
               />

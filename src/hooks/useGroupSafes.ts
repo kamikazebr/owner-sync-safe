@@ -29,8 +29,22 @@ export function useGroupSafes(managerAddress?: Address, chainId?: number) {
 
   // Fetch module creation events and build safe list
   useEffect(() => {
-    if (!managerAddress || !publicClient || !allModules || (allModules as Address[]).length === 0) {
-      setSafes([]);
+    // Early returns without clearing existing safes (prevents flickering during refetches)
+    if (!managerAddress || !publicClient) {
+      // Only clear if manager changed (stale data)
+      if (safes.length > 0) setSafes([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Wait for data without clearing (wagmi refetch in progress)
+    if (!allModules) {
+      return;
+    }
+
+    // Empty array from contract = no modules, clear the list
+    if ((allModules as Address[]).length === 0) {
+      if (safes.length > 0) setSafes([]);
       setIsLoading(false);
       return;
     }

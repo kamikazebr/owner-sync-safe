@@ -103,3 +103,61 @@ export function isSafeAddress(address: Address): boolean {
   // Basic validation - in production, you might want to check the contract code
   return isValidAddress(address) && !isSentinelAddress(address);
 }
+
+/**
+ * Extract Safe address from various input formats
+ * Supports:
+ * - Full URLs: https://app.safe.global/home?safe=gno:0x123...
+ * - Full URLs: https://app.safe.global/transactions/tx?safe=gno:0x123...
+ * - Chain prefix: gno:0x123...
+ * - Direct address: 0x123...
+ *
+ * @param input - URL, chain-prefixed address, or direct address
+ * @returns Ethereum address or null if invalid
+ */
+export function extractSafeAddress(input: string): string | null {
+  if (!input || typeof input !== 'string') return null;
+
+  const trimmed = input.trim();
+
+  // Try to parse as URL
+  try {
+    const url = new URL(trimmed);
+    // Extract from ?safe=chain:address or ?safe=address
+    const safeParam = url.searchParams.get('safe');
+    if (safeParam) {
+      // Remove chain prefix (e.g., "gno:0x123" -> "0x123")
+      const address = safeParam.includes(':') ? safeParam.split(':')[1] : safeParam;
+      return isValidAddress(address) ? address : null;
+    }
+  } catch {
+    // Not a URL, continue with other formats
+  }
+
+  // Try to match chain:address pattern anywhere in the string
+  const chainPrefixMatch = trimmed.match(/(?:gno|eth|matic|arb|oeth|base|sep|gor|ogor|zkevm|zksync|aurora|avax|bnb|celo|gno|gnosis):0x[a-fA-F0-9]{40}/);
+  if (chainPrefixMatch) {
+    const address = chainPrefixMatch[0].split(':')[1];
+    return isValidAddress(address) ? address : null;
+  }
+
+  // Check if it has chain prefix (e.g., "gno:0x123")
+  if (trimmed.includes(':')) {
+    const parts = trimmed.split(':');
+    if (parts.length >= 2) {
+      // Take everything after first colon
+      const address = parts.slice(1).join(':');
+      if (isValidAddress(address)) {
+        return address;
+      }
+    }
+  }
+
+  // Try to extract any Ethereum address from the string
+  const addressMatch = trimmed.match(/0x[a-fA-F0-9]{40}/);
+  if (addressMatch && isValidAddress(addressMatch[0])) {
+    return addressMatch[0];
+  }
+
+  return null;
+}
