@@ -116,12 +116,12 @@ export function ModuleSettings({ moduleAddress, safeAddress }: ModuleSettingsPro
 
   if (!moduleAddress || !moduleConfig.isConfigured) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <div className="flex items-center space-x-3 mb-4">
-          <Settings className="h-6 w-6 text-gray-400" />
-          <h2 className="text-xl font-semibold text-gray-900">Module Settings</h2>
+          <Settings className="h-6 w-6 text-gray-400 dark:text-gray-600" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Module Settings</h2>
         </div>
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-gray-400">
           Configure a module first to manage owners.
         </p>
       </div>
@@ -149,16 +149,16 @@ export function ModuleSettings({ moduleAddress, safeAddress }: ModuleSettingsPro
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Settings className="h-6 w-6 text-blue-600" />
-          <h2 className="text-xl font-semibold text-gray-900">Module Settings</h2>
+          <Settings className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Module Settings</h2>
         </div>
 
         <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
           <Dialog.Trigger asChild>
-            <button className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+            <button className="bg-blue-600 dark:bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors flex items-center space-x-2">
               <Plus className="h-4 w-4" />
               <span>New Operation</span>
             </button>
@@ -166,15 +166,15 @@ export function ModuleSettings({ moduleAddress, safeAddress }: ModuleSettingsPro
 
           <Dialog.Portal>
             <Dialog.Overlay className="bg-black/50 fixed inset-0 z-50" />
-            <Dialog.Content className="bg-white rounded-lg p-6 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 max-h-[80vh] overflow-y-auto">
-              <Dialog.Title className="text-lg font-semibold mb-4">
+            <Dialog.Content className="bg-white dark:bg-gray-800 rounded-lg p-6 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 max-h-[80vh] overflow-y-auto">
+              <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 New Operation
               </Dialog.Title>
 
               <div className="space-y-4">
                 {/* Operation Type Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Operation Type
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -321,14 +321,14 @@ export function ModuleSettings({ moduleAddress, safeAddress }: ModuleSettingsPro
                 {/* Action buttons */}
                 <div className="flex space-x-3 pt-4">
                   <Dialog.Close asChild>
-                    <button className={cn("flex-1 px-4 py-2 border rounded-lg", theme.button.secondary, theme.transition.default)}>
+                    <button className={cn("flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700", theme.transition.default)}>
                       Cancel
                     </button>
                   </Dialog.Close>
                   <button
                     onClick={handleSubmit}
                     disabled={loading}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="flex-1 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50"
                   >
                     {loading ? 'Executing...' : 'Execute'}
                   </button>
@@ -342,9 +342,9 @@ export function ModuleSettings({ moduleAddress, safeAddress }: ModuleSettingsPro
       {/* Current Configuration */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Current Owners */}
-        <div className="border rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 mb-3 flex items-center space-x-2">
-            <UserCheck className="h-5 w-5 text-blue-600" />
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <h3 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
+            <UserCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <span>Current Owners ({moduleConfig.owners.length})</span>
           </h3>
 
@@ -352,53 +352,53 @@ export function ModuleSettings({ moduleAddress, safeAddress }: ModuleSettingsPro
             {moduleConfig.owners.map((owner, index) => (
               <div
                 key={owner}
-                className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900/30 rounded"
               >
-                <span className="font-mono text-sm">{truncateAddress(owner, 8)}</span>
-                <span className="text-xs text-gray-500">#{index + 1}</span>
+                <span className="font-mono text-sm text-gray-900 dark:text-white">{truncateAddress(owner, 8)}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">#{index + 1}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Configuration Summary */}
-        <div className="border rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 mb-3 flex items-center space-x-2">
-            <Hash className="h-5 w-5 text-green-600" />
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <h3 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
+            <Hash className="h-5 w-5 text-green-600 dark:text-green-400" />
             <span>Configuration</span>
           </h3>
 
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-600">Threshold:</span>
-              <span className="font-medium">{moduleConfig.threshold}/{moduleConfig.owners.length}</span>
+              <span className="text-gray-600 dark:text-gray-400">Threshold:</span>
+              <span className="font-medium text-gray-900 dark:text-white">{moduleConfig.threshold}/{moduleConfig.owners.length}</span>
             </div>
 
             <div className="flex justify-between">
-              <span className="text-gray-600">Auto-sync:</span>
-              <span className={moduleConfig.autoSyncEnabled ? 'text-green-600' : 'text-gray-600'}>
+              <span className="text-gray-600 dark:text-gray-400">Auto-sync:</span>
+              <span className={moduleConfig.autoSyncEnabled ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}>
                 {moduleConfig.autoSyncEnabled ? 'Active' : 'Inactive'}
               </span>
             </div>
 
             <div className="flex justify-between">
-              <span className="text-gray-600">Full sync:</span>
-              <span className={moduleConfig.isSyncComplete ? 'text-green-600' : 'text-yellow-600'}>
+              <span className="text-gray-600 dark:text-gray-400">Full sync:</span>
+              <span className={moduleConfig.isSyncComplete ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
                 {moduleConfig.isSyncComplete ? 'Yes' : 'Partial'}
               </span>
             </div>
 
             <div className="flex justify-between">
-              <span className="text-gray-600">Sync limit:</span>
-              <span className="font-medium">{moduleConfig.maxSyncOwners} owners</span>
+              <span className="text-gray-600 dark:text-gray-400">Sync limit:</span>
+              <span className="font-medium text-gray-900 dark:text-white">{moduleConfig.maxSyncOwners} owners</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="mt-6 border-t pt-6">
-        <h3 className="font-medium text-gray-900 mb-3">Quick Actions</h3>
+      <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+        <h3 className="font-medium text-gray-900 dark:text-white mb-3">Quick Actions</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { type: 'addOwner' as OperationType, label: 'Add Owner', icon: UserPlus },
@@ -413,7 +413,7 @@ export function ModuleSettings({ moduleAddress, safeAddress }: ModuleSettingsPro
                 setIsOpen(true);
               }}
               className={cn(
-                'p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-all text-center',
+                'p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all text-center',
                 getOperationColor(type)
               )}
             >

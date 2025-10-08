@@ -74,12 +74,12 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
 
   if (!safeAddress) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <div className="flex items-center space-x-3">
-          <Settings className="h-6 w-6 text-gray-400" />
-          <h2 className="text-xl font-semibold text-gray-900">Module Management</h2>
+          <Settings className="h-6 w-6 text-gray-400 dark:text-gray-600" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Module Management</h2>
         </div>
-        <p className="mt-4 text-gray-600">
+        <p className="mt-4 text-gray-600 dark:text-gray-400">
           Connect your wallet and select a Safe to manage modules.
         </p>
       </div>
@@ -87,11 +87,11 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Settings className="h-6 w-6 text-blue-600" />
-          <h2 className="text-xl font-semibold text-gray-900">Safe Module</h2>
+          <Settings className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Safe Module</h2>
         </div>
         <span className={cn('px-3 py-1 rounded-full text-sm font-medium', status.color, status.bg)}>
           {status.text}
@@ -100,41 +100,41 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
 
       <div className="space-y-4">
         {/* Safe Info */}
-        <div className="border rounded-lg p-4 bg-gray-50">
-          <h3 className="font-medium text-gray-900 mb-2">Selected Safe</h3>
-          <p className="text-sm text-gray-600 font-mono">{truncateAddress(safeAddress, 8)}</p>
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/30">
+          <h3 className="font-medium text-gray-900 dark:text-white mb-2">Selected Safe</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">{truncateAddress(safeAddress, 8)}</p>
         </div>
 
         {/* Module Status */}
         {moduleInfo?.moduleAddress && moduleInfo.moduleAddress !== '0x0000000000000000000000000000000000000000' ? (
-          <div className="border rounded-lg p-4">
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-gray-900">Installed Module</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white">Installed Module</h3>
               <div className="flex items-center space-x-2">
                 {moduleConfig.isConfigured ? (
-                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <CheckCircle className="h-5 w-5 text-green-500 dark:text-green-400" />
                 ) : (
-                  <XCircle className="h-5 w-5 text-red-500" />
+                  <XCircle className="h-5 w-5 text-red-500 dark:text-red-400" />
                 )}
               </div>
             </div>
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Address:</span>
-                <span className="font-mono text-gray-900">{truncateAddress(moduleInfo.moduleAddress as Address, 8)}</span>
+                <span className="text-gray-600 dark:text-gray-400">Address:</span>
+                <span className="font-mono text-gray-900 dark:text-white">{truncateAddress(moduleInfo.moduleAddress as Address, 8)}</span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-gray-600">Configured:</span>
-                <span className={moduleConfig.isConfigured ? 'text-green-600' : 'text-red-600'}>
+                <span className="text-gray-600 dark:text-gray-400">Configured:</span>
+                <span className={moduleConfig.isConfigured ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                   {moduleConfig.isConfigured ? 'Yes' : 'No'}
                 </span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-gray-600">Enabled on Safe:</span>
-                <span className={isModuleEnabledOnSafe ? 'text-green-600' : 'text-orange-600'}>
+                <span className="text-gray-600 dark:text-gray-400">Enabled on Safe:</span>
+                <span className={isModuleEnabledOnSafe ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}>
                   {isModuleEnabledOnSafe ? 'Yes' : 'No'}
                 </span>
               </div>
@@ -142,13 +142,13 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
               {moduleConfig.isConfigured && (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Synced owners:</span>
-                    <span className="text-gray-900">{moduleConfig.syncedOwners}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Synced owners:</span>
+                    <span className="text-gray-900 dark:text-white">{moduleConfig.syncedOwners}</span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Threshold:</span>
-                    <span className="text-gray-900">{moduleConfig.threshold}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Threshold:</span>
+                    <span className="text-gray-900 dark:text-white">{moduleConfig.threshold}</span>
                   </div>
                 </>
               )}
@@ -159,7 +159,7 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
               {!isModuleEnabledOnSafe && (
                 <button
                   onClick={handleEnableModule}
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                  className="w-full bg-blue-600 dark:bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Enable Module on Safe</span>
@@ -168,7 +168,7 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
 
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors"
+                className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 {showSettings ? 'Hide Settings' : 'Show Settings'}
               </button>
@@ -176,16 +176,16 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
           </div>
         ) : (
           /* Create Module */
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-            <div className="mx-auto w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-              <Plus className="h-6 w-6 text-blue-600" />
+          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+            <div className="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-4">
+              <Plus className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
 
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
               Create Module
             </h3>
 
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               This Safe does not have a synchronization module yet.
               Create a new module to start managing owners.
             </p>
@@ -193,7 +193,7 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
             <button
               onClick={handleCreateModule}
               disabled={isCreating || managerLoading || !address}
-              className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 mx-auto"
+              className="bg-blue-600 dark:bg-blue-500 text-white py-2 px-6 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 mx-auto"
             >
               {isCreating || managerLoading ? (
                 <>
@@ -209,7 +209,7 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
             </button>
 
             {!address && (
-              <p className="text-red-600 text-sm mt-2">
+              <p className="text-red-600 dark:text-red-400 text-sm mt-2">
                 Connect your wallet to create a module
               </p>
             )}
@@ -217,10 +217,10 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
         )}
 
         {/* Manager Info */}
-        <div className="border-t pt-4 text-xs text-gray-500">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 text-xs text-gray-500 dark:text-gray-400">
           <div className="flex justify-between">
             <span>You are manager owner:</span>
-            <span className={isManagerOwner ? 'text-green-600' : 'text-gray-600'}>
+            <span className={isManagerOwner ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}>
               {isManagerOwner ? 'Yes' : 'No'}
             </span>
           </div>

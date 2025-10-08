@@ -26,10 +26,10 @@ export default function HomePage() {
 
   if (!mounted) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </main>
     );
@@ -94,8 +94,8 @@ function HomeClient() {
         {activeView === 'dashboard' && (
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-              <p className="text-gray-600">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-400">
                 Welcome to Owner Sync Safe - Manage your Safe owner synchronization groups
               </p>
             </div>
@@ -150,33 +150,33 @@ function HomeClient() {
                 {/* Quick Actions */}
                 <button
                   onClick={() => setActiveView('groups')}
-                  className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow text-left"
+                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-md transition-shadow text-left"
                 >
-                  <Users className="h-8 w-8 text-blue-600 mb-3" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">My Groups</h3>
-                  <p className="text-sm text-gray-600">
+                  <Users className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-3" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">My Groups</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     View and manage your sync groups
                   </p>
                 </button>
 
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="bg-blue-50 border border-blue-200 rounded-lg p-6 hover:shadow-md transition-shadow text-left"
+                  className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 hover:shadow-md transition-shadow text-left"
                 >
-                  <Home className="h-8 w-8 text-blue-600 mb-3" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">New Group</h3>
-                  <p className="text-sm text-gray-600">
+                  <Home className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-3" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">New Group</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Create a new sync group
                   </p>
                 </button>
               </div>
             ) : (
-              <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-                <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-12 text-center">
+                <Users className="h-16 w-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                   Connect Your Wallet
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-400">
                   Connect your wallet to start managing sync groups
                 </p>
               </div>
@@ -201,8 +201,8 @@ function HomeClient() {
         {activeView === 'settings' && (
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
-              <p className="text-gray-600">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Settings</h1>
+              <p className="text-gray-600 dark:text-gray-400">
                 Configure your preferences and view system information
               </p>
             </div>
@@ -211,8 +211,8 @@ function HomeClient() {
             <ContractInfo safeInfo={safeInfo} />
 
             {/* Future Settings */}
-            <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-              <p className="text-gray-500">Additional settings coming soon...</p>
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-12 text-center">
+              <p className="text-gray-500 dark:text-gray-400">Additional settings coming soon...</p>
             </div>
           </div>
         )}
