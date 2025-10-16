@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useReadContract, usePublicClient } from 'wagmi';
 import { Address, parseAbiItem } from 'viem';
 import { SafeModuleManagerABI, SafeABI } from '@/lib/abis';
+import { getDeploymentBlock } from '@/lib/deployments';
 
 export interface GroupSafe {
   safeAddress: Address;
@@ -52,11 +53,15 @@ export function useGroupSafes(managerAddress?: Address, chainId?: number) {
     const fetchSafes = async () => {
       setIsLoading(true);
       try {
+        // Get deployment block to optimize query (avoid scanning millions of blocks)
+        const deploymentBlock = getDeploymentBlock(chainId ?? 100);
+        const fromBlock = deploymentBlock ? deploymentBlock : 'earliest';
+
         // Get ModuleCreated events
         const logs = await publicClient.getLogs({
           address: managerAddress,
           event: parseAbiItem('event ModuleCreated(address indexed safe, address indexed module)'),
-          fromBlock: 'earliest',
+          fromBlock,
           toBlock: 'latest',
         });
 

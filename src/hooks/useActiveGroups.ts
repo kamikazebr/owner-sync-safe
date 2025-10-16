@@ -5,7 +5,7 @@ import { Address, parseAbiItem } from 'viem';
 import { usePublicClient } from 'wagmi';
 import { useSafeApps } from './useSafeApps';
 import { SafeABI } from '@/lib/abis';
-import { getDeployedAddress } from '@/lib/deployments';
+import { getDeployedAddress, getDeploymentBlock } from '@/lib/deployments';
 
 // Registry ABI for group lookup
 const REGISTRY_ABI = [
@@ -74,13 +74,17 @@ export function useActiveGroups(chainId?: number) {
         console.log('[useActiveGroups] Starting check for Safe:', safeInfo.safeAddress);
         setIsLoading(true);
 
+        // Get deployment block to optimize query (avoid scanning millions of blocks)
+        const deploymentBlock = getDeploymentBlock(chainId ?? 100);
+        const fromBlock = deploymentBlock ? deploymentBlock : 'earliest';
+
         // Get all ModuleCreated events for this Safe
         const logs = await publicClient.getLogs({
           event: parseAbiItem('event ModuleCreated(address indexed safe, address indexed module)'),
           args: {
             safe: safeInfo.safeAddress as Address,
           },
-          fromBlock: 'earliest',
+          fromBlock,
           toBlock: 'latest',
         });
 

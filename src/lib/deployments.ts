@@ -6,6 +6,7 @@ export interface ChainDeployments {
   SyncGroupRegistry?: Address;
   OwnerModuleFactory?: Address;
   ControlOwnerModule?: Address;
+  deploymentBlock?: bigint;
 }
 
 /**
@@ -22,6 +23,7 @@ const DEPLOYMENT_ADDRESSES: Record<number, ChainDeployments> = {
     SafeModuleManager: '0x8e2447ecf79997240911a7431d69ae99befc3143',
     ManagedSafeModule: '0x5c0c204f7a177ab5c94516e06e76656205372db3',
     SyncGroupRegistry: '0xa74c4551f0b32e0754dfecff5dc0239f23cc7844',
+    deploymentBlock: 42052181n, // Block where SafeModuleManager was deployed
   }
 };
 
@@ -37,16 +39,26 @@ export function getDeploymentAddresses(chainId: number): ChainDeployments {
  */
 export function getDeployedAddress(
   chainId: number,
-  contractName: keyof ChainDeployments
+  contractName: Exclude<keyof ChainDeployments, 'deploymentBlock'>
 ): Address | undefined {
   const addresses = getDeploymentAddresses(chainId);
-  const address = addresses[contractName];
+  const address = addresses[contractName] as Address | undefined;
 
   console.log(`[Deployments] Getting ${contractName} for chain ${chainId}`);
   console.log(`[Deployments] Available contracts:`, Object.keys(addresses));
   console.log(`[Deployments] Address found:`, address);
 
   return address;
+}
+
+/**
+ * Get deployment block for a specific chain
+ * Returns the block number where the contracts were deployed
+ * Used to optimize event queries by avoiding scanning from "earliest"
+ */
+export function getDeploymentBlock(chainId: number): bigint | undefined {
+  const addresses = getDeploymentAddresses(chainId);
+  return addresses.deploymentBlock;
 }
 
 /**
