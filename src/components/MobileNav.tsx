@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Users, Plus, Settings, Moon, Sun } from 'lucide-react';
+import { Home, Users, Plus, Settings, Moon, Sun, Github } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
@@ -50,6 +50,17 @@ export function MobileNav({ activeView, onViewChange }: MobileNavProps) {
           {isDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           <span className="text-xs font-medium">Theme</span>
         </button>
+
+        {/* GitHub Link */}
+        <a
+          href="https://github.com/kamikazebr/owner-sync-safe"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center justify-center flex-1 h-full space-y-1 text-gray-600 dark:text-gray-400 transition-colors"
+        >
+          <Github className="h-5 w-5" />
+          <span className="text-xs font-medium">GitHub</span>
+        </a>
       </nav>
     </div>
   );
