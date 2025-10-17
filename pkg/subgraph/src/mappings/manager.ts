@@ -12,7 +12,10 @@ import {
   CrossModuleCall as CrossModuleCallEntity,
   SafeNetworkRemoval,
 } from "../../generated/schema";
-import { ManagedSafeModule as ManagedSafeModuleTemplate } from "../../generated/templates";
+import {
+  ManagedSafeModule as ManagedSafeModuleTemplate,
+  Safe as SafeTemplate
+} from "../../generated/templates";
 
 export function handleModuleCreated(event: ModuleCreated): void {
   log.info("ModuleCreated: safe={}, module={}", [
@@ -55,6 +58,17 @@ export function handleModuleCreated(event: ModuleCreated): void {
   context.setString("managerId", managerAddress);
   context.setBytes("safe", event.params.safe);
   ManagedSafeModuleTemplate.createWithContext(event.params.module, context);
+
+  // Create template data source for the Safe contract
+  // This will track EnabledModule/DisabledModule events from the Safe
+  const safeContext = new DataSourceContext();
+  safeContext.setBytes("module", event.params.module);
+  SafeTemplate.createWithContext(event.params.safe, safeContext);
+
+  log.info("Created data sources for module and Safe: module={}, safe={}", [
+    moduleAddress,
+    event.params.safe.toHexString(),
+  ]);
 }
 
 export function handleSafeRemovedFromNetwork(event: SafeRemovedFromNetwork): void {

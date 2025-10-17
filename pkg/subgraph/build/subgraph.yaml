@@ -108,3 +108,23 @@ templates:
         - event: RequireFullSyncChanged(bool)
           handler: handleRequireFullSyncChanged
       file: templates/ManagedSafeModule/ManagedSafeModule.wasm
+  - kind: ethereum/contract
+    name: Safe
+    network: gnosis
+    source:
+      abi: Safe
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - ManagedSafeModule
+      abis:
+        - name: Safe
+          file: Safe/Safe.json
+      eventHandlers:
+        - event: EnabledModule(address)
+          handler: handleEnabledModule
+        - event: DisabledModule(address)
+          handler: handleDisabledModule
+      file: templates/Safe/Safe.wasm

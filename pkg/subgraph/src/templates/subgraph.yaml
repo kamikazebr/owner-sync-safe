@@ -113,3 +113,25 @@ templates:
         - event: RequireFullSyncChanged(bool)
           handler: handleRequireFullSyncChanged
       file: ./src/mappings/module.ts
+
+  # Safe template - Track individual Safe contracts for module enablement
+  - kind: ethereum/contract
+    name: Safe
+    network: {{network}}
+    source:
+      abi: Safe
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - ManagedSafeModule
+      abis:
+        - name: Safe
+          file: ./abis/Safe.json
+      eventHandlers:
+        - event: EnabledModule(address)
+          handler: handleEnabledModule
+        - event: DisabledModule(address)
+          handler: handleDisabledModule
+      file: ./src/mappings/safe.ts

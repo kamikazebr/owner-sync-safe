@@ -33,3 +33,13 @@ export class ManagedSafeModule extends DataSourceTemplate {
     );
   }
 }
+
+export class Safe extends DataSourceTemplate {
+  static create(address: Address): void {
+    DataSourceTemplate.create("Safe", [address.toHex()]);
+  }
+
+  static createWithContext(address: Address, context: DataSourceContext): void {
+    DataSourceTemplate.createWithContext("Safe", [address.toHex()], context);
+  }
+}
