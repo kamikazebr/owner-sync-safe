@@ -93,8 +93,9 @@ export function usePendingSetup(chainId?: number) {
             continue;
           }
 
-          // Double-check if module is enabled on the Safe if public client available
-          // This helps catch cases where the module was just disabled
+          // Optional: Check if module is enabled (for informational purposes)
+          // We show pending setups regardless of enabled status, since user needs
+          // to enable the module first before they can configure it
           if (publicClient) {
             try {
               const isEnabled = await publicClient.readContract({
@@ -110,12 +111,6 @@ export function usePendingSetup(chainId?: number) {
                 safeAddress: safeInfo.safeAddress,
                 isEnabled,
               });
-
-              // If module is not enabled, it's not really pending - skip it
-              if (!isEnabled) {
-                console.log('[usePendingSetup] Module not enabled on Safe, skipping');
-                continue;
-              }
             } catch (error) {
               console.warn('[usePendingSetup] Failed to verify module on-chain:', error);
               // Continue with subgraph data

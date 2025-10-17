@@ -88,10 +88,36 @@ export function SetupBanner({
   }
 
 
-  const handleCopy = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
+  const handleCopy = async (text: string, field: string) => {
+    try {
+      // Try modern Clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        setCopiedField(field);
+        setTimeout(() => setCopiedField(null), 2000);
+        return;
+      }
+
+      // Fallback for iframe contexts (like Safe app)
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      const successful = document.execCommand('copy');
+      textArea.remove();
+
+      if (successful) {
+        setCopiedField(field);
+        setTimeout(() => setCopiedField(null), 2000);
+      }
+    } catch (error) {
+      console.error('Copy failed:', error);
+    }
   };
 
   const handleAccept = (setup: PendingSetupInfo) => {
@@ -228,34 +254,6 @@ export function SetupBanner({
                               >
                                 <ExternalLink className="h-3 w-3" />
                               </a>
-                            </div>
-
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium">Transaction:</span>
-                              <code className="font-mono">{setup.txHash.slice(0, 6)}...{setup.txHash.slice(-4)}</code>
-                              <button
-                                onClick={() => handleCopy(setup.txHash, `tx-${setup.moduleAddress}`)}
-                                className="p-0.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
-                              >
-                                {copiedField === `tx-${setup.moduleAddress}` ? (
-                                  <Check className="h-3 w-3 text-green-600" />
-                                ) : (
-                                  <Copy className="h-3 w-3" />
-                                )}
-                              </button>
-                              <a
-                                href={`${explorerUrl}/tx/${setup.txHash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-0.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            </div>
-
-                            <div>
-                              <span className="font-medium">Block:</span>{' '}
-                              <code className="font-mono">#{setup.blockNumber.toString()}</code>
                             </div>
                           </div>
                         </div>

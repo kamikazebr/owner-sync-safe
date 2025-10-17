@@ -47,6 +47,17 @@ function HomeClient() {
   const [selectedGroupId, setSelectedGroupId] = useState<bigint | undefined>(undefined);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // Debug logging
+  console.log('[HomePage] Pending setup state:', {
+    hasPendingSetup,
+    pendingSetupsCount: pendingSetups.length,
+    pendingSetups,
+    hasActiveGroups,
+    activeGroupsCount: activeGroups.length,
+    isSafeApp,
+    safeAddress: safeInfo?.safeAddress,
+  });
+
   const handleViewChange = (view: string) => {
     setActiveView(view);
 

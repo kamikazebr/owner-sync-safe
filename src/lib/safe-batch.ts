@@ -170,6 +170,17 @@ export function buildSafeTransactionBuilderUrl(
 }
 
 /**
+ * Build URL to Safe home page for a specific Safe address
+ */
+export function buildSafeHomeUrl(
+  chainId: number,
+  safeAddress: Address
+): string {
+  const chainPrefix = chainId === 100 ? 'gno' : 'eth';
+  return `https://app.safe.global/home?safe=${chainPrefix}:${safeAddress}`;
+}
+
+/**
  * Build URL to open app in Safe with custom app URL
  */
 export function buildSafeAppUrl(

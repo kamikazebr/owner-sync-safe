@@ -8,7 +8,7 @@ import { useModuleManager } from '@/hooks/useModuleManager';
 import { useGroupSafes } from '@/hooks/useGroupSafes';
 import { useSafeApps } from '@/hooks/useSafeApps';
 import { getBlockExplorerUrl, getDeployedAddress } from '@/lib/deployments';
-import { buildSafeAppUrl, encodeDeactivateGroup, buildSafeTransactionBuilderUrl } from '@/lib/safe-batch';
+import { buildSafeAppUrl, buildSafeHomeUrl, encodeDeactivateGroup, buildSafeTransactionBuilderUrl } from '@/lib/safe-batch';
 import {
   Shield,
   Users,
@@ -52,10 +52,39 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
   const { createModuleForSafe, isLoading: isCreatingModule } = useModuleManager(group?.manager as Address);
   const { safes, isLoading: isLoadingSafes, refetch: refetchSafes } = useGroupSafes(group?.manager as Address, chainId || 100);
 
-  const handleCopy = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
+  const handleCopy = async (text: string, field: string) => {
+    try {
+      // Try modern Clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        setCopiedField(field);
+        setTimeout(() => setCopiedField(null), 2000);
+        return;
+      }
+
+      // Fallback for iframe contexts (like Safe app)
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      const successful = document.execCommand('copy');
+      textArea.remove();
+
+      if (successful) {
+        setCopiedField(field);
+        setTimeout(() => setCopiedField(null), 2000);
+      } else {
+        toast.error('Copy failed. Please copy manually.');
+      }
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast.error('Copy failed. Please copy manually.');
+    }
   };
 
   // Check if we can execute deactivate directly via Safe SDK
@@ -488,6 +517,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
                       <button
                         onClick={() => handleCopy(safe.safeAddress, `safe-${safe.safeAddress}`)}
                         className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                        title="Copy address"
                       >
                         {copiedField === `safe-${safe.safeAddress}` ? (
                           <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
@@ -496,10 +526,20 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
                         )}
                       </button>
                       <a
+                        href={buildSafeHomeUrl(chainId || 100, safe.safeAddress)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                        title="Open in Safe interface"
+                      >
+                        <Shield className="h-3 w-3" />
+                      </a>
+                      <a
                         href={`${explorerUrl}/address/${safe.safeAddress}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                        title="View on block explorer"
                       >
                         <ExternalLink className="h-3 w-3" />
                       </a>
