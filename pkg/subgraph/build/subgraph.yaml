@@ -1,0 +1,110 @@
+specVersion: 0.0.5
+features:
+  - nonFatalErrors
+schema:
+  file: schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: SyncGroupRegistry
+    network: gnosis
+    source:
+      address: "0xa74c4551f0b32e0754dfecff5dc0239f23cc7844"
+      abi: SyncGroupRegistry
+      startBlock: 42052181
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - SyncGroupRegistry
+        - SyncGroup
+        - SafeModuleManager
+      abis:
+        - name: SyncGroupRegistry
+          file: SyncGroupRegistry/SyncGroupRegistry.json
+        - name: SafeModuleManager
+          file: SyncGroupRegistry/SafeModuleManager.json
+      eventHandlers:
+        - event: GroupCreated(indexed uint256,indexed address,address,string)
+          handler: handleGroupCreated
+        - event: GroupUpdated(indexed uint256,string)
+          handler: handleGroupUpdated
+        - event: GroupDeactivated(indexed uint256)
+          handler: handleGroupDeactivated
+        - event: SafeAddedToGroup(indexed uint256,indexed address,indexed address)
+          handler: handleSafeAddedToGroup
+        - event: SafeRemovedFromGroup(indexed uint256,indexed address)
+          handler: handleSafeRemovedFromGroup
+      file: SyncGroupRegistry/SyncGroupRegistry.wasm
+templates:
+  - kind: ethereum/contract
+    name: SafeModuleManager
+    network: gnosis
+    source:
+      abi: SafeModuleManager
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - SafeModuleManager
+        - ManagedSafeModule
+        - CrossModuleCall
+        - SafeNetworkRemoval
+      abis:
+        - name: SafeModuleManager
+          file: SafeModuleManager/SafeModuleManager.json
+        - name: ManagedSafeModule
+          file: SafeModuleManager/ManagedSafeModule.json
+      eventHandlers:
+        - event: ModuleCreated(indexed address,indexed address)
+          handler: handleModuleCreated
+        - event: SafeRemovedFromNetwork(indexed address)
+          handler: handleSafeRemovedFromNetwork
+        - event: CrossModuleCall(indexed address,address[])
+          handler: handleCrossModuleCall
+        - event: SafeToModuleSet(indexed address,indexed address)
+          handler: handleSafeToModuleSet
+        - event: ModuleDisabledOnSafe(indexed address,indexed address)
+          handler: handleModuleDisabledOnSafe
+      file: templates/SafeModuleManager/SafeModuleManager.wasm
+  - kind: ethereum/contract
+    name: ManagedSafeModule
+    network: gnosis
+    source:
+      abi: ManagedSafeModule
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - ManagedSafeModule
+        - ModuleOwner
+        - OwnerChange
+        - ThresholdChange
+        - OwnerSyncEvent
+      abis:
+        - name: ManagedSafeModule
+          file: ManagedSafeModule/ManagedSafeModule.json
+      eventHandlers:
+        - event: SafeConfigured(indexed address)
+          handler: handleSafeConfigured
+        - event: SafeOwnerAdded(indexed address,indexed address)
+          handler: handleSafeOwnerAdded
+        - event: SafeOwnerRemoved(indexed address,indexed address)
+          handler: handleSafeOwnerRemoved
+        - event: SafeOwnerReplaced(indexed address,indexed address,indexed address)
+          handler: handleSafeOwnerReplaced
+        - event: SafeThresholdChanged(indexed address,uint256)
+          handler: handleSafeThresholdChanged
+        - event: OwnersSynced(uint256,bool)
+          handler: handleOwnersSynced
+        - event: SyncLimitReached(uint256,uint256)
+          handler: handleSyncLimitReached
+        - event: MaxSyncOwnersUpdated(uint256,uint256)
+          handler: handleMaxSyncOwnersUpdated
+        - event: AutoSyncStatusChanged(bool)
+          handler: handleAutoSyncStatusChanged
+        - event: RequireFullSyncChanged(bool)
+          handler: handleRequireFullSyncChanged
+      file: templates/ManagedSafeModule/ManagedSafeModule.wasm

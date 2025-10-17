@@ -1,0 +1,133 @@
+# Registry Level
+type SyncGroupRegistry @entity(immutable: false) {
+  id: ID!  # Registry address
+  groups: [SyncGroup!]! @derivedFrom(field: "registry")
+  totalGroups: BigInt!
+}
+
+type SyncGroup @entity(immutable: false) {
+  id: ID!  # groupId as string
+  registry: SyncGroupRegistry!
+  groupId: BigInt!
+  manager: SafeModuleManager!
+  template: Bytes!
+  owner: Bytes!  # Governance Safe
+  name: String!
+  active: Boolean!
+  createdAt: BigInt!
+  updatedAt: BigInt
+  safes: [GroupSafe!]! @derivedFrom(field: "group")
+}
+
+# Manager Level
+type SafeModuleManager @entity(immutable: false) {
+  id: ID!  # Manager address
+  group: SyncGroup
+  moduleTemplate: Bytes!
+  totalModules: BigInt!
+  modules: [ManagedSafeModule!]! @derivedFrom(field: "manager")
+  crossModuleCalls: [CrossModuleCall!]! @derivedFrom(field: "manager")
+}
+
+# Module Level (Dynamic Templates)
+type ManagedSafeModule @entity(immutable: false) {
+  id: ID!  # Module address
+  manager: SafeModuleManager!
+  safe: Bytes!
+  createdAt: BigInt!
+  isActive: Boolean!
+
+  # Configuration
+  isConfigured: Boolean!
+  threshold: BigInt
+  autoSyncEnabled: Boolean!
+  requireFullSync: Boolean!
+  maxSyncOwners: BigInt!
+
+  # Relations
+  owners: [ModuleOwner!]! @derivedFrom(field: "module")
+  ownerChanges: [OwnerChange!]! @derivedFrom(field: "module")
+  thresholdChanges: [ThresholdChange!]! @derivedFrom(field: "module")
+  syncEvents: [OwnerSyncEvent!]! @derivedFrom(field: "module")
+}
+
+# Group-Safe Relationship
+type GroupSafe @entity(immutable: false) {
+  id: ID!  # groupId-safe
+  group: SyncGroup!
+  safe: Bytes!
+  module: ManagedSafeModule!
+  addedAt: BigInt!
+  removedAt: BigInt
+  isActive: Boolean!
+}
+
+# Owner Tracking
+type ModuleOwner @entity(immutable: false) {
+  id: ID!  # module-owner
+  module: ManagedSafeModule!
+  owner: Bytes!
+  addedAt: BigInt!
+  removedAt: BigInt
+  isActive: Boolean!
+}
+
+# Event Entities
+type OwnerChange @entity(immutable: true) {
+  id: ID!  # txHash-logIndex
+  module: ManagedSafeModule!
+  safe: Bytes!
+  changeType: OwnerChangeType!
+  oldOwner: Bytes
+  newOwner: Bytes
+  threshold: BigInt
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+enum OwnerChangeType {
+  ADDED
+  REMOVED
+  REPLACED
+}
+
+type ThresholdChange @entity(immutable: true) {
+  id: ID!  # txHash-logIndex
+  module: ManagedSafeModule!
+  safe: Bytes!
+  oldThreshold: BigInt
+  newThreshold: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type OwnerSyncEvent @entity(immutable: true) {
+  id: ID!  # txHash-logIndex
+  module: ManagedSafeModule!
+  ownerCount: BigInt!
+  isComplete: Boolean!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type CrossModuleCall @entity(immutable: true) {
+  id: ID!  # txHash-logIndex
+  manager: SafeModuleManager!
+  caller: Bytes!
+  modulesCount: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type SafeNetworkRemoval @entity(immutable: true) {
+  id: ID!  # txHash-logIndex
+  safe: Bytes!
+  module: Bytes
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}

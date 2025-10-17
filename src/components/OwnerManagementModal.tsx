@@ -18,7 +18,7 @@ import { useModuleManager } from '@/hooks/useModuleManager';
 import { useGroupSafes } from '@/hooks/useGroupSafes';
 import { useSafeContract } from '@/hooks/useSafeContract';
 import { useAccount } from 'wagmi';
-import { truncateAddress, getPreviousOwner, isValidAddress, isValidThreshold, cn } from '@/lib/utils';
+import { truncateAddress, getPreviousOwner, isValidAddress, isValidThreshold, cn, extractSafeAddress } from '@/lib/utils';
 import { theme } from '@/lib/theme';
 import toast from 'react-hot-toast';
 
@@ -77,11 +77,13 @@ export function OwnerManagementModal({
             toast.error('Fill in all fields');
             return;
           }
-          if (!isValidAddress(operation.newOwner)) {
-            toast.error('Invalid address');
+          // Extract address from various formats (URL, chain:address, raw address)
+          const extractedAddress = extractSafeAddress(operation.newOwner);
+          if (!extractedAddress || !isValidAddress(extractedAddress)) {
+            toast.error('Invalid address format. Accepted formats: URL, chain:address, or 0x...');
             return;
           }
-          hash = await addSafeOwnerToAll(operation.newOwner as Address, operation.newThreshold);
+          hash = await addSafeOwnerToAll(extractedAddress as Address, operation.newThreshold);
           break;
 
         case 'removeOwner':
@@ -102,8 +104,10 @@ export function OwnerManagementModal({
             toast.error('Select current owner and new owner');
             return;
           }
-          if (!isValidAddress(operation.newOwner)) {
-            toast.error('Invalid new owner address');
+          // Extract address from various formats (URL, chain:address, raw address)
+          const extractedReplaceAddress = extractSafeAddress(operation.newOwner);
+          if (!extractedReplaceAddress || !isValidAddress(extractedReplaceAddress)) {
+            toast.error('Invalid new owner address format. Accepted formats: URL, chain:address, or 0x...');
             return;
           }
           const prevOwnerReplace = getPreviousOwner(owners, operation.oldOwner);
@@ -111,7 +115,7 @@ export function OwnerManagementModal({
             toast.error('Could not determine previous owner');
             return;
           }
-          hash = await replaceSafeOwnerInAll(prevOwnerReplace, operation.oldOwner, operation.newOwner as Address);
+          hash = await replaceSafeOwnerInAll(prevOwnerReplace, operation.oldOwner, extractedReplaceAddress as Address);
           break;
 
         case 'changeThreshold':

@@ -1,0 +1,16 @@
+{
+  "network": "gnosis",
+  "chainId": 100,
+  "SyncGroupRegistry": {
+    "address": "0xa74c4551f0b32e0754dfecff5dc0239f23cc7844",
+    "startBlock": 42052181
+  },
+  "SafeModuleManager": {
+    "address": "0x8e2447ecf79997240911a7431d69ae99befc3143",
+    "startBlock": 42052181
+  },
+  "ManagedSafeModule": {
+    "address": "0x5c0c204f7a177ab5c94516e06e76656205372db3",
+    "startBlock": 42052181
+  }
+}

@@ -20,3 +20,11 @@ broadcast/**
 .env
 .next/
 .vercel
+
+pkg/subgraph/build/
+pkg/subgraph/node_modules/
+
+tsconfig.tsbuildinfo
+
+
+internal_docs/

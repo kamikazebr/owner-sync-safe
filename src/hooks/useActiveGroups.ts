@@ -1,41 +1,11 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Address, parseAbiItem } from 'viem';
+import { Address } from 'viem';
 import { usePublicClient } from 'wagmi';
 import { useSafeApps } from './useSafeApps';
 import { SafeABI } from '@/lib/abis';
-import { getDeployedAddress, getDeploymentBlock } from '@/lib/deployments';
-
-// Registry ABI for group lookup
-const REGISTRY_ABI = [
-  {
-    type: 'function',
-    name: 'getGroupByManager',
-    stateMutability: 'view',
-    inputs: [{ name: 'manager', type: 'address' }],
-    outputs: [{ type: 'uint256' }],
-  },
-  {
-    type: 'function',
-    name: 'getGroup',
-    stateMutability: 'view',
-    inputs: [{ name: 'groupId', type: 'uint256' }],
-    outputs: [
-      {
-        type: 'tuple',
-        components: [
-          { name: 'manager', type: 'address' },
-          { name: 'template', type: 'address' },
-          { name: 'owner', type: 'address' },
-          { name: 'name', type: 'string' },
-          { name: 'active', type: 'bool' },
-          { name: 'createdAt', type: 'uint256' },
-        ],
-      },
-    ],
-  },
-] as const;
+import { subgraphClient, GET_ACTIVE_GROUPS } from '@/lib/subgraph-client';
 
 export interface ActiveGroupInfo {
   groupId: bigint;
@@ -74,110 +44,95 @@ export function useActiveGroups(chainId?: number) {
         console.log('[useActiveGroups] Starting check for Safe:', safeInfo.safeAddress);
         setIsLoading(true);
 
-        // Get deployment block to optimize query (avoid scanning millions of blocks)
-        const deploymentBlock = getDeploymentBlock(chainId ?? 100);
-        const fromBlock = deploymentBlock ? deploymentBlock : 'earliest';
-
-        // Get all ModuleCreated events for this Safe
-        const logs = await publicClient.getLogs({
-          event: parseAbiItem('event ModuleCreated(address indexed safe, address indexed module)'),
-          args: {
-            safe: safeInfo.safeAddress as Address,
-          },
-          fromBlock,
-          toBlock: 'latest',
+        // Query subgraph for all modules for this Safe
+        const response = await subgraphClient.request<{
+          managedSafeModules: Array<{
+            id: string;
+            manager: {
+              id: string;
+              group: {
+                groupId: string;
+                name: string;
+                owner: string;
+                active: boolean;
+              };
+            };
+            isConfigured: boolean;
+          }>;
+        }>(GET_ACTIVE_GROUPS, {
+          safeAddress: safeInfo.safeAddress.toLowerCase(),
         });
 
-        console.log('[useActiveGroups] Found logs:', logs.length);
+        const modules = response.managedSafeModules || [];
 
-        if (logs.length === 0) {
-          console.log('[useActiveGroups] No ModuleCreated events found');
+        console.log('[useActiveGroups] Found modules from subgraph:', modules.length);
+
+        if (modules.length === 0) {
+          console.log('[useActiveGroups] No modules found');
           setActiveGroups([]);
           hasInitialized.current = true;
           return;
         }
 
-        // Collect ALL active modules (enabled on the Safe)
+        // Collect ALL active modules (verify on-chain if needed)
         const active: ActiveGroupInfo[] = [];
 
-        for (const log of logs) {
-          if (!log.args.module || !log.address) continue;
+        for (const module of modules) {
+          const moduleAddress = module.id as Address;
+          const managerAddress = module.manager.id as Address;
+          const group = module.manager.group;
 
-          const moduleAddress = log.args.module as Address;
-          const managerAddress = log.address as Address;
+          // Skip if group is inactive
+          if (!group.active) {
+            console.log('[useActiveGroups] Group is inactive, skipping:', {
+              groupId: group.groupId,
+              groupName: group.name,
+            });
+            continue;
+          }
 
-          // Check if module is enabled on the Safe (source of truth)
-          const isEnabled = await publicClient.readContract({
-            address: safeInfo.safeAddress as Address,
-            abi: SafeABI,
-            functionName: 'isModuleEnabled',
-            args: [moduleAddress],
-          }) as boolean;
-
-          console.log('[useActiveGroups] Module check:', {
-            moduleAddress,
-            managerAddress,
-            safeAddress: safeInfo.safeAddress,
-            isEnabled,
-          });
-
-          if (isEnabled) {
-            // Module is active! Get group info from registry
+          // Double-check if module is enabled on the Safe if public client available
+          if (publicClient) {
             try {
-              const registryAddress = getDeployedAddress(chainId ?? 100, 'SyncGroupRegistry');
+              const isEnabled = await publicClient.readContract({
+                address: safeInfo.safeAddress as Address,
+                abi: SafeABI,
+                functionName: 'isModuleEnabled',
+                args: [moduleAddress],
+              }) as boolean;
 
-              // Get groupId from manager address
-              const groupId = await publicClient.readContract({
-                address: registryAddress as Address,
-                abi: REGISTRY_ABI,
-                functionName: 'getGroupByManager',
-                args: [managerAddress],
-              }) as bigint;
+              console.log('[useActiveGroups] Module check:', {
+                moduleAddress,
+                managerAddress,
+                safeAddress: safeInfo.safeAddress,
+                isEnabled,
+              });
 
-              // Get group details
-              const group = await publicClient.readContract({
-                address: registryAddress as Address,
-                abi: REGISTRY_ABI,
-                functionName: 'getGroup',
-                args: [groupId],
-              }) as { name: string; manager: Address; owner: Address; active: boolean };
-
-              // Skip if group is inactive
-              if (!group.active) {
-                console.log('[useActiveGroups] Group is inactive, skipping:', {
-                  groupId,
-                  groupName: group.name,
-                });
+              if (!isEnabled) {
+                console.log('[useActiveGroups] Module not enabled on Safe, skipping');
                 continue;
               }
-
-              console.log('[useActiveGroups] Found active group:', {
-                groupId,
-                groupName: group.name,
-                groupOwner: group.owner,
-                managerAddress,
-                moduleAddress,
-              });
-
-              active.push({
-                groupId,
-                groupName: group.name,
-                groupOwner: group.owner,
-                managerAddress,
-                moduleAddress,
-              });
             } catch (error) {
-              console.error('[useActiveGroups] Error fetching group info:', error);
-              // Fallback to basic info
-              active.push({
-                groupId: 0n,
-                groupName: 'Sync Group',
-                groupOwner: '0x0000000000000000000000000000000000000000' as Address,
-                managerAddress,
-                moduleAddress,
-              });
+              console.warn('[useActiveGroups] Failed to verify module on-chain:', error);
+              // Continue with subgraph data
             }
           }
+
+          console.log('[useActiveGroups] Found active group:', {
+            groupId: group.groupId,
+            groupName: group.name,
+            groupOwner: group.owner,
+            managerAddress,
+            moduleAddress,
+          });
+
+          active.push({
+            groupId: BigInt(group.groupId),
+            groupName: group.name,
+            groupOwner: group.owner as Address,
+            managerAddress,
+            moduleAddress,
+          });
         }
 
         console.log('[useActiveGroups] Total active groups found:', active.length);

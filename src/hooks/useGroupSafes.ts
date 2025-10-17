@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useReadContract, usePublicClient } from 'wagmi';
-import { Address, parseAbiItem } from 'viem';
-import { SafeModuleManagerABI, SafeABI } from '@/lib/abis';
-import { getDeploymentBlock } from '@/lib/deployments';
+import { usePublicClient } from 'wagmi';
+import { Address } from 'viem';
+import { SafeABI } from '@/lib/abis';
+import { subgraphClient, GET_GROUP_SAFES } from '@/lib/subgraph-client';
 
 export interface GroupSafe {
   safeAddress: Address;
@@ -18,33 +18,11 @@ export function useGroupSafes(managerAddress?: Address, chainId?: number) {
   const [refreshCounter, setRefreshCounter] = useState(0);
   const publicClient = usePublicClient({ chainId });
 
-  // Get all modules from the manager
-  const { data: allModules, refetch: refetchModules } = useReadContract({
-    address: managerAddress,
-    abi: SafeModuleManagerABI,
-    functionName: 'getAllModules',
-    query: {
-      enabled: !!managerAddress,
-    },
-  });
-
-  // Fetch module creation events and build safe list
+  // Fetch modules from subgraph and verify on-chain status
   useEffect(() => {
     // Early returns without clearing existing safes (prevents flickering during refetches)
-    if (!managerAddress || !publicClient) {
+    if (!managerAddress) {
       // Only clear if manager changed (stale data)
-      if (safes.length > 0) setSafes([]);
-      setIsLoading(false);
-      return;
-    }
-
-    // Wait for data without clearing (wagmi refetch in progress)
-    if (!allModules) {
-      return;
-    }
-
-    // Empty array from contract = no modules, clear the list
-    if ((allModules as Address[]).length === 0) {
       if (safes.length > 0) setSafes([]);
       setIsLoading(false);
       return;
@@ -53,52 +31,52 @@ export function useGroupSafes(managerAddress?: Address, chainId?: number) {
     const fetchSafes = async () => {
       setIsLoading(true);
       try {
-        // Get deployment block to optimize query (avoid scanning millions of blocks)
-        const deploymentBlock = getDeploymentBlock(chainId ?? 100);
-        const fromBlock = deploymentBlock ? deploymentBlock : 'earliest';
-
-        // Get ModuleCreated events
-        const logs = await publicClient.getLogs({
-          address: managerAddress,
-          event: parseAbiItem('event ModuleCreated(address indexed safe, address indexed module)'),
-          fromBlock,
-          toBlock: 'latest',
+        // Query subgraph for all modules managed by this manager
+        const response = await subgraphClient.request<{
+          managedSafeModules: Array<{
+            id: string;
+            safe: string;
+            isActive: boolean;
+            isConfigured: boolean;
+          }>;
+        }>(GET_GROUP_SAFES, {
+          managerAddress: managerAddress.toLowerCase(),
         });
 
-        // Build map of module -> safe from events
-        const moduleToSafe = new Map<Address, Address>();
-        logs.forEach((log) => {
-          if (log.args.safe && log.args.module) {
-            moduleToSafe.set(log.args.module as Address, log.args.safe as Address);
-          }
-        });
+        const modules = response.managedSafeModules || [];
 
-        // For each module, get its safe address and check if active
+        // Verify module status on-chain if we have a public client
+        // This ensures we have the most up-to-date status
         const safesList: GroupSafe[] = [];
 
-        for (const moduleAddress of allModules as Address[]) {
-          const safeAddress = moduleToSafe.get(moduleAddress);
+        for (const module of modules) {
+          let isActive = module.isActive;
 
-          if (safeAddress) {
-            // Check if module is enabled on the Safe (source of truth)
-            const isActive = await publicClient.readContract({
-              address: safeAddress,
-              abi: SafeABI,
-              functionName: 'isModuleEnabled',
-              args: [moduleAddress],
-            }) as boolean;
-
-            safesList.push({
-              safeAddress,
-              moduleAddress,
-              isActive,
-            });
+          // Always verify on-chain if public client available to get real-time status
+          if (publicClient) {
+            try {
+              isActive = await publicClient.readContract({
+                address: module.safe as Address,
+                abi: SafeABI,
+                functionName: 'isModuleEnabled',
+                args: [module.id as Address],
+              }) as boolean;
+            } catch (error) {
+              console.warn(`Failed to verify module status on-chain for ${module.id}:`, error);
+              // Fall back to subgraph data
+            }
           }
+
+          safesList.push({
+            safeAddress: module.safe as Address,
+            moduleAddress: module.id as Address,
+            isActive,
+          });
         }
 
         setSafes(safesList);
       } catch (error) {
-        console.error('Error fetching group safes:', error);
+        console.error('Error fetching group safes from subgraph:', error);
         setSafes([]);
       } finally {
         setIsLoading(false);
@@ -106,10 +84,9 @@ export function useGroupSafes(managerAddress?: Address, chainId?: number) {
     };
 
     fetchSafes();
-  }, [managerAddress, publicClient, allModules, refreshCounter]);
+  }, [managerAddress, publicClient, refreshCounter]);
 
   const refetch = async () => {
-    await refetchModules();
     // Increment counter to force useEffect to re-run
     setRefreshCounter(prev => prev + 1);
   };

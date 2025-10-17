@@ -1,41 +1,11 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Address, parseAbiItem } from 'viem';
+import { Address } from 'viem';
 import { usePublicClient } from 'wagmi';
 import { useSafeApps } from './useSafeApps';
-import { SafeModuleManagerABI, SafeABI } from '@/lib/abis';
-import { getDeployedAddress, getDeploymentBlock } from '@/lib/deployments';
-
-// Registry ABI for group lookup
-const REGISTRY_ABI = [
-  {
-    type: 'function',
-    name: 'getGroupByManager',
-    stateMutability: 'view',
-    inputs: [{ name: 'manager', type: 'address' }],
-    outputs: [{ type: 'uint256' }],
-  },
-  {
-    type: 'function',
-    name: 'getGroup',
-    stateMutability: 'view',
-    inputs: [{ name: 'groupId', type: 'uint256' }],
-    outputs: [
-      {
-        type: 'tuple',
-        components: [
-          { name: 'manager', type: 'address' },
-          { name: 'template', type: 'address' },
-          { name: 'owner', type: 'address' },
-          { name: 'name', type: 'string' },
-          { name: 'active', type: 'bool' },
-          { name: 'createdAt', type: 'uint256' },
-        ],
-      },
-    ],
-  },
-] as const;
+import { SafeABI } from '@/lib/abis';
+import { subgraphClient, GET_PENDING_SETUPS } from '@/lib/subgraph-client';
 
 export interface PendingSetupInfo {
   groupId: bigint;
@@ -43,9 +13,7 @@ export interface PendingSetupInfo {
   managerAddress: Address;
   moduleAddress: Address;
   createdBy: Address; // Who added this Safe to the group
-  blockNumber: bigint;
   timestamp: bigint;
-  txHash: string;
 }
 
 export function usePendingSetup(chainId?: number) {
@@ -78,24 +46,31 @@ export function usePendingSetup(chainId?: number) {
         console.log('[usePendingSetup] Starting check for Safe:', safeInfo.safeAddress);
         setIsLoading(true);
 
-        // Get deployment block to optimize query (avoid scanning millions of blocks)
-        const deploymentBlock = getDeploymentBlock(chainId ?? 100);
-        const fromBlock = deploymentBlock ? deploymentBlock : 'earliest';
-
-        // Get all ModuleCreated events for this Safe
-        const logs = await publicClient.getLogs({
-          event: parseAbiItem('event ModuleCreated(address indexed safe, address indexed module)'),
-          args: {
-            safe: safeInfo.safeAddress as Address,
-          },
-          fromBlock,
-          toBlock: 'latest',
+        // Query subgraph for modules that are created but not configured
+        const response = await subgraphClient.request<{
+          managedSafeModules: Array<{
+            id: string;
+            manager: {
+              id: string;
+              group: {
+                groupId: string;
+                name: string;
+                owner: string;
+                active: boolean;
+              };
+            };
+            createdAt: string;
+          }>;
+        }>(GET_PENDING_SETUPS, {
+          safeAddress: safeInfo.safeAddress.toLowerCase(),
         });
 
-        console.log('[usePendingSetup] Found logs:', logs.length);
+        const modules = response.managedSafeModules || [];
 
-        if (logs.length === 0) {
-          console.log('[usePendingSetup] No ModuleCreated events found');
+        console.log('[usePendingSetup] Found pending modules from subgraph:', modules.length);
+
+        if (modules.length === 0) {
+          console.log('[usePendingSetup] No pending modules found');
           setPendingSetups([]);
           hasInitialized.current = true;
           return;
@@ -104,98 +79,65 @@ export function usePendingSetup(chainId?: number) {
         // Collect ALL inactive modules (multiple groups can invite the same Safe)
         const pending: PendingSetupInfo[] = [];
 
-        for (const log of logs) {
-          if (!log.args.module || !log.address || !log.blockNumber || !log.transactionHash) continue;
+        for (const module of modules) {
+          const moduleAddress = module.id as Address;
+          const managerAddress = module.manager.id as Address;
+          const group = module.manager.group;
 
-          const moduleAddress = log.args.module as Address;
-          const managerAddress = log.address as Address;
-          const blockNumber = log.blockNumber;
-          const txHash = log.transactionHash;
+          // Skip if group is inactive
+          if (!group.active) {
+            console.log('[usePendingSetup] Group is inactive, skipping:', {
+              groupId: group.groupId,
+              groupName: group.name,
+            });
+            continue;
+          }
 
-          // Get block timestamp
-          const block = await publicClient.getBlock({ blockNumber });
-          const timestamp = block.timestamp;
-
-          // Check if module is enabled on the Safe (source of truth)
-          const isActive = await publicClient.readContract({
-            address: safeInfo.safeAddress as Address,
-            abi: SafeABI,
-            functionName: 'isModuleEnabled',
-            args: [moduleAddress],
-          }) as boolean;
-
-          console.log('[usePendingSetup] Module check:', {
-            moduleAddress,
-            managerAddress,
-            safeAddress: safeInfo.safeAddress,
-            isActive,
-          });
-
-          if (!isActive) {
-            // Found a pending setup! Get group info from registry
+          // Double-check if module is enabled on the Safe if public client available
+          // This helps catch cases where the module was just disabled
+          if (publicClient) {
             try {
-              const registryAddress = getDeployedAddress(chainId ?? 100, 'SyncGroupRegistry');
+              const isEnabled = await publicClient.readContract({
+                address: safeInfo.safeAddress as Address,
+                abi: SafeABI,
+                functionName: 'isModuleEnabled',
+                args: [moduleAddress],
+              }) as boolean;
 
-              // Get groupId from manager address
-              const groupId = await publicClient.readContract({
-                address: registryAddress as Address,
-                abi: REGISTRY_ABI,
-                functionName: 'getGroupByManager',
-                args: [managerAddress],
-              }) as bigint;
+              console.log('[usePendingSetup] Module check:', {
+                moduleAddress,
+                managerAddress,
+                safeAddress: safeInfo.safeAddress,
+                isEnabled,
+              });
 
-              // Get group details
-              const group = await publicClient.readContract({
-                address: registryAddress as Address,
-                abi: REGISTRY_ABI,
-                functionName: 'getGroup',
-                args: [groupId],
-              }) as { name: string; manager: Address; owner: Address; active: boolean };
-
-              // Skip if group is inactive
-              if (!group.active) {
-                console.log('[usePendingSetup] Group is inactive, skipping:', {
-                  groupId,
-                  groupName: group.name,
-                });
+              // If module is not enabled, it's not really pending - skip it
+              if (!isEnabled) {
+                console.log('[usePendingSetup] Module not enabled on Safe, skipping');
                 continue;
               }
-
-              console.log('[usePendingSetup] Found pending setup:', {
-                groupId,
-                groupName: group.name,
-                managerAddress,
-                moduleAddress,
-                blockNumber,
-                timestamp,
-                txHash,
-              });
-
-              pending.push({
-                groupId,
-                groupName: group.name,
-                managerAddress,
-                moduleAddress,
-                createdBy: group.owner,
-                blockNumber,
-                timestamp,
-                txHash,
-              });
             } catch (error) {
-              console.error('[usePendingSetup] Error fetching group info:', error);
-              // Fallback to basic info
-              pending.push({
-                groupId: 0n,
-                groupName: 'Sync Group',
-                managerAddress,
-                moduleAddress,
-                createdBy: '0x0000000000000000000000000000000000000000' as Address,
-                blockNumber,
-                timestamp,
-                txHash,
-              });
+              console.warn('[usePendingSetup] Failed to verify module on-chain:', error);
+              // Continue with subgraph data
             }
           }
+
+          console.log('[usePendingSetup] Found pending setup:', {
+            groupId: group.groupId,
+            groupName: group.name,
+            managerAddress,
+            moduleAddress,
+            timestamp: module.createdAt,
+          });
+
+          pending.push({
+            groupId: BigInt(group.groupId),
+            groupName: group.name,
+            managerAddress,
+            moduleAddress,
+            createdBy: group.owner as Address,
+            timestamp: BigInt(module.createdAt),
+          });
         }
 
         console.log('[usePendingSetup] Total pending setups found:', pending.length);

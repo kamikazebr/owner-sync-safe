@@ -1,0 +1,23 @@
+{
+  "name": "owner-sync-safe-subgraph",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm manifest:gnosis && graph codegen && graph build",
+    "manifest:gnosis": "node ./src/scripts/mustache.js gnosis",
+    "codegen": "graph codegen",
+    "deploy:gnosis": "graph deploy --studio owner-sync-safe-gnosis",
+    "create-local": "graph create --node http://localhost:8020/ owner-sync-safe",
+    "deploy:local": "pnpm manifest:gnosis && graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 owner-sync-safe"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.69.2",
+    "@graphprotocol/graph-ts": "^0.34.0",
+    "graphql": "^16.11.0",
+    "graphql-request": "^7.3.0"
+  },
+  "devDependencies": {
+    "mustache": "^4.2.0"
+  }
+}
