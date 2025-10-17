@@ -44,7 +44,7 @@ export const GET_ACTIVE_GROUPS = `
 
 export const GET_PENDING_SETUPS = `
   query GetPendingSetups($safeAddress: Bytes!) {
-    managedSafeModules(where: { safe: $safeAddress, isConfigured: false }) {
+    managedSafeModules(where: { safe: $safeAddress, isActive: false }) {
       id
       manager {
         id

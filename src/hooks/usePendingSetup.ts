@@ -67,7 +67,12 @@ export function usePendingSetup(chainId?: number) {
 
         const modules = response.managedSafeModules || [];
 
+        console.log('[usePendingSetup] Query variables:', {
+          safeAddress: safeInfo.safeAddress.toLowerCase(),
+          query: 'GET_PENDING_SETUPS with isActive: false',
+        });
         console.log('[usePendingSetup] Found pending modules from subgraph:', modules.length);
+        console.log('[usePendingSetup] Raw response:', response);
 
         if (modules.length === 0) {
           console.log('[usePendingSetup] No pending modules found');

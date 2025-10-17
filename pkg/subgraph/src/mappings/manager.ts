@@ -37,7 +37,7 @@ export function handleModuleCreated(event: ModuleCreated): void {
   module.manager = managerAddress;
   module.safe = event.params.safe;
   module.createdAt = event.block.timestamp;
-  module.isActive = true;
+  module.isActive = false; // Will be set to true when Safe enables the module
   module.isConfigured = false;
   module.threshold = null;
   module.autoSyncEnabled = true; // Default value
