@@ -127,7 +127,7 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
                 <span className="text-gray-600 dark:text-gray-400">Address:</span>
                 <div className="flex items-center gap-2">
                   <span
-                    onClick={() => copyToClipboard(moduleInfo.moduleAddress, 'module address')}
+                    onClick={() => moduleInfo.moduleAddress && copyToClipboard(moduleInfo.moduleAddress, 'module address')}
                     className="font-mono text-xs text-gray-900 dark:text-white break-all cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors"
                     title="Click to copy"
                   >
