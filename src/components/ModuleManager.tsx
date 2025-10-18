@@ -3,14 +3,16 @@
 import { useState } from 'react';
 import { Address } from 'viem';
 import { useAccount } from 'wagmi';
-import { Settings, Plus, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Settings, Plus, CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react';
 import { useModuleManager } from '@/hooks/useModuleManager';
 import { useModuleForSafe } from '@/hooks/useModuleForSafe';
 import { useManagedModule } from '@/hooks/useManagedModule';
 import { useSafeContract } from '@/hooks/useSafeContract';
 import { useIsModuleEnabled } from '@/hooks/useIsModuleEnabled';
-import { truncateAddress, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { copyToClipboard } from '@/lib/clipboard';
+import { getBlockExplorerUrl } from '@/lib/deployments';
 
 interface ModuleManagerProps {
   safeAddress?: Address;
@@ -18,9 +20,10 @@ interface ModuleManagerProps {
 }
 
 export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerProps) {
-  const { address } = useAccount();
+  const { address, chainId } = useAccount();
   const [isCreating, setIsCreating] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const explorerUrl = getBlockExplorerUrl(chainId || 100);
 
   const {
     createModuleForSafe,
@@ -102,7 +105,7 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
         {/* Safe Info */}
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/30">
           <h3 className="font-medium text-gray-900 dark:text-white mb-2">Selected Safe</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">{truncateAddress(safeAddress, 8)}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 font-mono break-all">{safeAddress}</p>
         </div>
 
         {/* Module Status */}
@@ -120,9 +123,26 @@ export function ModuleManager({ safeAddress, onModuleCreated }: ModuleManagerPro
             </div>
 
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-1">
                 <span className="text-gray-600 dark:text-gray-400">Address:</span>
-                <span className="font-mono text-gray-900 dark:text-white">{truncateAddress(moduleInfo.moduleAddress as Address, 8)}</span>
+                <div className="flex items-center gap-2">
+                  <span
+                    onClick={() => copyToClipboard(moduleInfo.moduleAddress, 'module address')}
+                    className="font-mono text-xs text-gray-900 dark:text-white break-all cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                    title="Click to copy"
+                  >
+                    {moduleInfo.moduleAddress}
+                  </span>
+                  <a
+                    href={`${explorerUrl}/address/${moduleInfo.moduleAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors flex-shrink-0"
+                    title="View on explorer"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
               </div>
 
               <div className="flex justify-between">

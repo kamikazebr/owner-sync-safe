@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useState, useEffect } from 'react';
+import { useAccount, usePublicClient, useReadContract } from 'wagmi';
 import { Address, isAddress, encodeFunctionData } from 'viem';
 import { useGroupDetails } from '@/hooks/useSyncGroupRegistry';
 import { useModuleManager } from '@/hooks/useModuleManager';
 import { useGroupSafes } from '@/hooks/useGroupSafes';
 import { useSafeApps } from '@/hooks/useSafeApps';
+import { useOwnerSyncStatus } from '@/hooks/useOwnerSyncStatus';
 import { getBlockExplorerUrl, getDeployedAddress } from '@/lib/deployments';
-import { buildSafeAppUrl, buildSafeHomeUrl, encodeDeactivateGroup, buildSafeTransactionBuilderUrl } from '@/lib/safe-batch';
+import { buildSafeAppUrl, buildSafeHomeUrl, buildSafeModulesUrl, encodeDeactivateGroup, buildSafeTransactionBuilderUrl } from '@/lib/safe-batch';
 import {
   Shield,
   Users,
@@ -21,15 +22,164 @@ import {
   Plus,
   Loader2,
   X,
-  UserCog
+  UserCog,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
-import { cn, truncateAddress, extractSafeAddress } from '@/lib/utils';
+import { cn, extractSafeAddress } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import * as Dialog from '@radix-ui/react-dialog';
 import { OwnerManagementModal } from '@/components/OwnerManagementModal';
+import { OwnerSyncStatusModal } from '@/components/OwnerSyncStatusModal';
 
 interface GroupDashboardProps {
   groupId: bigint;
+}
+
+interface SafeListItemProps {
+  safe: {
+    safeAddress: Address;
+    moduleAddress: Address;
+    isActive: boolean;
+  };
+  chainId: number;
+  explorerUrl: string;
+  copiedField: string | null;
+  handleCopy: (text: string, field: string) => void;
+}
+
+function SafeListItem({ safe, chainId, explorerUrl, copiedField, handleCopy }: SafeListItemProps) {
+  // Get sync status for this Safe (hooks can be called here since it's a component)
+  const syncStatus = safe.isActive ? useOwnerSyncStatus(safe.safeAddress, safe.moduleAddress) : null;
+
+  return (
+    <div
+      key={safe.moduleAddress}
+      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors bg-gray-50 dark:bg-gray-900/30"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Safe Address:</span>
+            <code className="text-sm font-mono text-gray-900 dark:text-gray-100 truncate">
+              {safe.safeAddress}
+            </code>
+            <button
+              onClick={() => handleCopy(safe.safeAddress, `safe-${safe.safeAddress}`)}
+              className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              title="Copy address"
+            >
+              {copiedField === `safe-${safe.safeAddress}` ? (
+                <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+            </button>
+            <a
+              href={buildSafeHomeUrl(chainId, safe.safeAddress)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              title="Open in Safe interface"
+            >
+              <Shield className="h-3 w-3" />
+            </a>
+            <a
+              href={`${explorerUrl}/address/${safe.safeAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              title="View on block explorer"
+            >
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Module:</span>
+            <code className="text-xs font-mono text-gray-600 dark:text-gray-400 truncate">
+              {safe.moduleAddress}
+            </code>
+            <button
+              onClick={() => handleCopy(safe.moduleAddress, `module-${safe.moduleAddress}`)}
+              className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+            >
+              {copiedField === `module-${safe.moduleAddress}` ? (
+                <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+            </button>
+            <a
+              href={`${explorerUrl}/address/${safe.moduleAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              title="View on block explorer"
+            >
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+        </div>
+
+        <div className="flex-shrink-0 flex flex-col gap-2">
+          {safe.isActive ? (
+            <>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                <Check className="h-3 w-3 mr-1" />
+                Active
+              </span>
+              {syncStatus && syncStatus.isInSync ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  In Sync
+                </span>
+              ) : syncStatus && syncStatus.needsSync ? (
+                <span
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 cursor-help"
+                  title={`Actual owners: ${syncStatus.actualOwners.length}, Cached: ${syncStatus.cachedOwners.length}`}
+                >
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Out of Sync
+                </span>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {/* Load this app in Safe */}
+              <a
+                href={buildSafeAppUrl(
+                  chainId,
+                  safe.safeAddress,
+                  typeof window !== 'undefined' ? window.location.origin : ''
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50 rounded-lg text-xs font-medium transition-colors"
+                title="Open this app inside Safe"
+              >
+                <AlertCircle className="h-3 w-3" />
+                Enable Module
+                <ExternalLink className="h-3 w-3" />
+              </a>
+              {/* Go to modules settings */}
+              <a
+                href={buildSafeModulesUrl(chainId, safe.safeAddress)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg text-xs font-medium transition-colors"
+                title="Go to Safe modules settings"
+              >
+                <Settings className="h-3 w-3" />
+                Modules Settings
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function GroupDashboard({ groupId }: GroupDashboardProps) {
@@ -43,6 +193,9 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
   // Owner management modal state
   const [showOwnerModal, setShowOwnerModal] = useState(false);
 
+  // Sync status modal state
+  const [showSyncStatusModal, setShowSyncStatusModal] = useState(false);
+
   // Add Safe to group
   const [safeToAdd, setSafeToAdd] = useState('');
   const [isAddingSafe, setIsAddingSafe] = useState(false);
@@ -52,32 +205,100 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
   const { createModuleForSafe, isLoading: isCreatingModule } = useModuleManager(group?.manager as Address);
   const { safes, isLoading: isLoadingSafes, refetch: refetchSafes } = useGroupSafes(group?.manager as Address, chainId || 100);
 
+  // Calculate active Safes count for button states
+  const activeSafesCount = safes.filter(s => s.isActive).length;
+
+  // Manager implementation verification
+  const publicClient = usePublicClient({ chainId: chainId || 100 });
+  const [managerImplementation, setManagerImplementation] = useState<Address | null>(null);
+
+  // Read canonical implementation from SyncGroupRegistry
+  const registryAddress = getDeployedAddress(chainId || 100, 'SyncGroupRegistry');
+  const { data: canonicalManagerImpl } = useReadContract({
+    address: registryAddress as Address,
+    abi: [{
+      name: 'managerImplementation',
+      type: 'function',
+      stateMutability: 'view',
+      inputs: [],
+      outputs: [{ type: 'address' }],
+    }] as const,
+    functionName: 'managerImplementation',
+    chainId: chainId || 100,
+    query: {
+      enabled: !!registryAddress,
+    },
+  });
+
+  // Read manager's actual implementation from ERC1967 storage slot
+  useEffect(() => {
+    const fetchManagerImplementation = async () => {
+      if (!group?.manager || !publicClient) return;
+
+      try {
+        // ERC1967 implementation storage slot
+        const slot = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
+        const data = await publicClient.getStorageAt({
+          address: group.manager as Address,
+          slot: slot as `0x${string}`,
+        });
+
+        if (data && data !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+          // Extract address from bytes32 (last 20 bytes)
+          const implAddress = ('0x' + data.slice(-40)) as Address;
+          setManagerImplementation(implAddress);
+        }
+      } catch (error) {
+        console.error('Failed to read manager implementation:', error);
+      }
+    };
+
+    fetchManagerImplementation();
+  }, [group?.manager, publicClient]);
+
+  // Check if implementation is up-to-date
+  const isImplementationUpToDate = managerImplementation && canonicalManagerImpl
+    ? managerImplementation.toLowerCase() === (canonicalManagerImpl as string).toLowerCase()
+    : null;
+
   const handleCopy = async (text: string, field: string) => {
     try {
-      // Try modern Clipboard API first
+      // Try modern Clipboard API first (requires clipboard-write permission)
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
         setCopiedField(field);
         setTimeout(() => setCopiedField(null), 2000);
+        toast.success('Copied to clipboard!');
         return;
       }
+    } catch (error) {
+      // Modern API failed, fall through to legacy method
+      console.log('Clipboard API failed, using fallback:', error);
+    }
 
-      // Fallback for iframe contexts (like Safe app)
+    try {
+      // Fallback using document.execCommand (works in sandboxed iframes)
       const textArea = document.createElement('textarea');
       textArea.value = text;
+      // Position off-screen but keep it visible (display:none or visibility:hidden breaks copy)
       textArea.style.position = 'fixed';
       textArea.style.left = '-999999px';
       textArea.style.top = '-999999px';
+      textArea.setAttribute('readonly', '');
       document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
 
+      // Select the text
+      textArea.select();
+      textArea.setSelectionRange(0, text.length);
+
+      // Execute copy command
       const successful = document.execCommand('copy');
-      textArea.remove();
+      document.body.removeChild(textArea);
 
       if (successful) {
         setCopiedField(field);
         setTimeout(() => setCopiedField(null), 2000);
+        toast.success('Copied to clipboard!');
       } else {
         toast.error('Copy failed. Please copy manually.');
       }
@@ -156,6 +377,9 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
           value: '0',
           data,
         }],
+        params: {
+          safeTxGas: 10000000, // 10M gas limit for complex transactions
+        },
       });
 
       toast.success('Deactivation transaction proposed! Check Safe to approve.');
@@ -214,7 +438,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
       const hash = await createModuleForSafe(extractedAddress as Address);
       if (hash) {
         setSafeToAdd('');
-        toast.success(`Safe ${truncateAddress(extractedAddress as Address)} added to group!`);
+        toast.success(`Safe ${extractedAddress} added to group!`);
         // Refetch safes list after a delay
         setTimeout(() => {
           refetchSafes();
@@ -264,10 +488,23 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
         {group.active && (
           <div className="flex flex-col items-end gap-2">
             <div className="flex gap-2">
+              {/* View Sync Status Button */}
+              <button
+                onClick={() => setShowSyncStatusModal(true)}
+                disabled={activeSafesCount === 0}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={activeSafesCount === 0 ? 'No active Safes in this group' : undefined}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                View Sync Status
+              </button>
+
               {/* Manage Owners Button */}
               <button
                 onClick={() => setShowOwnerModal(true)}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                disabled={activeSafesCount === 0}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={activeSafesCount === 0 ? 'No active Safes in this group' : undefined}
               >
                 <UserCog className="h-4 w-4 mr-2" />
                 Manage Owners
@@ -318,18 +555,36 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
       <div className="grid gap-4 md:grid-cols-3">
         {/* Manager Info */}
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <div className="flex items-center mb-3">
-            <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Manager Contract</h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center">
+              <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Manager Contract</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">SafeModuleManager</p>
+              </div>
+            </div>
+            {isImplementationUpToDate !== null && (
+              <span
+                className={cn(
+                  'text-xs px-2 py-0.5 rounded-full font-medium cursor-help',
+                  isImplementationUpToDate
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                    : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                )}
+                title={managerImplementation ? `Implementation: ${managerImplementation}` : 'Loading implementation...'}
+              >
+                {isImplementationUpToDate ? '✓ Up to date' : '⚠ Upgrade available'}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-sm font-mono text-gray-700 dark:text-gray-300 truncate">
-              {truncateAddress(group.manager as Address)}
+            <code className="flex-1 text-xs font-mono text-gray-700 dark:text-gray-300 break-all">
+              {group.manager}
             </code>
             <button
               onClick={() => handleCopy(group.manager, 'manager')}
-              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex-shrink-0"
             >
               {copiedField === 'manager' ? (
                 <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
@@ -341,7 +596,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
               href={`${explorerUrl}/address/${group.manager}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex-shrink-0"
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
@@ -352,12 +607,15 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div className="flex items-center mb-3">
             <Settings className="h-4 w-4 text-purple-600 dark:text-purple-400 mr-2" />
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Module Template</h3>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Module Template</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">ManagedSafeModule</p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-sm font-mono text-gray-700 dark:text-gray-300 truncate">
-              {truncateAddress(group.template as Address)}
+            <code className="flex-1 text-xs font-mono text-gray-700 dark:text-gray-300 break-all">
+              {group.template}
             </code>
             <button
               onClick={() => handleCopy(group.template, 'template')}
@@ -384,12 +642,15 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div className="flex items-center mb-3">
             <Users className="h-4 w-4 text-green-600 dark:text-green-400 mr-2" />
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Governance Safe</h3>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Governance Safe</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Safe</p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-sm font-mono text-gray-700 dark:text-gray-300 truncate">
-              {truncateAddress(group.owner as Address)}
+            <code className="flex-1 text-xs font-mono text-gray-700 dark:text-gray-300 break-all">
+              {group.owner}
             </code>
             <button
               onClick={() => handleCopy(group.owner, 'owner')}
@@ -501,95 +762,50 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Add a Safe above to get started</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {safes.map((safe) => (
-              <div
-                key={safe.moduleAddress}
-                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors bg-gray-50 dark:bg-gray-900/30"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Safe Address:</span>
-                      <code className="text-sm font-mono text-gray-900 dark:text-gray-100 truncate">
-                        {safe.safeAddress}
-                      </code>
-                      <button
-                        onClick={() => handleCopy(safe.safeAddress, `safe-${safe.safeAddress}`)}
-                        className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                        title="Copy address"
-                      >
-                        {copiedField === `safe-${safe.safeAddress}` ? (
-                          <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </button>
-                      <a
-                        href={buildSafeHomeUrl(chainId || 100, safe.safeAddress)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                        title="Open in Safe interface"
-                      >
-                        <Shield className="h-3 w-3" />
-                      </a>
-                      <a
-                        href={`${explorerUrl}/address/${safe.safeAddress}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                        title="View on block explorer"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Module:</span>
-                      <code className="text-xs font-mono text-gray-600 dark:text-gray-400 truncate">
-                        {safe.moduleAddress}
-                      </code>
-                      <button
-                        onClick={() => handleCopy(safe.moduleAddress, `module-${safe.moduleAddress}`)}
-                        className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                      >
-                        {copiedField === `module-${safe.moduleAddress}` ? (
-                          <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex-shrink-0 flex flex-col gap-2">
-                    {safe.isActive ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                        <Check className="h-3 w-3 mr-1" />
-                        Active
-                      </span>
-                    ) : (
-                      <a
-                        href={buildSafeAppUrl(
-                          chainId || 100,
-                          safe.safeAddress,
-                          typeof window !== 'undefined' ? window.location.origin : ''
-                        )}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50 rounded-lg text-xs font-medium transition-colors"
-                      >
-                        <AlertCircle className="h-3 w-3" />
-                        Enable Module in Safe
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
-                  </div>
+          <div className="space-y-6">
+            {/* Active Safes */}
+            {safes.filter(s => s.isActive).length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  Active ({safes.filter(s => s.isActive).length})
+                </h4>
+                <div className="space-y-3">
+                  {safes.filter(s => s.isActive).map((safe) => (
+                    <SafeListItem
+                      key={safe.moduleAddress}
+                      safe={safe}
+                      chainId={chainId || 100}
+                      explorerUrl={explorerUrl}
+                      copiedField={copiedField}
+                      handleCopy={handleCopy}
+                    />
+                  ))}
                 </div>
-
               </div>
-            ))}
+            )}
+
+            {/* Inactive Safes */}
+            {safes.filter(s => !s.isActive).length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                  Pending Setup ({safes.filter(s => !s.isActive).length})
+                </h4>
+                <div className="space-y-3">
+                  {safes.filter(s => !s.isActive).map((safe) => (
+                    <SafeListItem
+                      key={safe.moduleAddress}
+                      safe={safe}
+                      chainId={chainId || 100}
+                      explorerUrl={explorerUrl}
+                      copiedField={copiedField}
+                      handleCopy={handleCopy}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -598,6 +814,15 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
       <OwnerManagementModal
         isOpen={showOwnerModal}
         onClose={() => setShowOwnerModal(false)}
+        managerAddress={group?.manager as Address}
+      />
+
+      {/* Owner Sync Status Modal */}
+      <OwnerSyncStatusModal
+        isOpen={showSyncStatusModal}
+        onClose={() => setShowSyncStatusModal(false)}
+        safes={safes || []}
+        chainId={chainId}
         managerAddress={group?.manager as Address}
       />
 

@@ -16,4 +16,7 @@ remappings = [
     "@zodiac/=lib/zodiac/",
 ]
 
+# File system permissions for reading networks.json
+fs_permissions = [{ access = "read", path = "./script/config/networks.json" }]
+
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

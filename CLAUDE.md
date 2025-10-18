@@ -40,12 +40,56 @@
 - Test core functionality after optimization to ensure nothing essential was broken
 
 # Current Architecture
-- **SafeModuleManager**: Creates ManagedSafeModule instances for cross-module operations
-- **ManagedSafeModule**: Individual modules installed in Safes, owned by their respective Safe
-- **Ownership Model**: Each Safe owns its own module → Safe controls its module operations and upgrades
-- **Module Enablement**: Each ManagedSafeModule must be individually enabled on its respective Safe
-- **Cross-Module Operations**: Only manager owner can execute operations across all managed modules
-- **Individual Module Control**: Each Safe can upgrade its own module independently via multisig approval
+
+## Registry-Based Multi-Group System
+- **SyncGroupRegistry** (UUPS Proxy): Main registry contract that creates and manages sync groups
+  - Deployed at: `0xa74c4551f0b32e0754dfecff5dc0239f23cc7844` (Gnosis Chain)
+  - Owner: `0x2F9e113434aeBDd70bB99cB6505e1F726C578D6d` (Deployer)
+  - Stores implementation templates for SafeModuleManager and ManagedSafeModule
+  - Creates isolated groups with their own governance
+
+- **SafeModuleManager** (UUPS Proxy per group): One instance per sync group
+  - Created by Registry when `createGroup()` is called
+  - Owner: Governance Safe specified during group creation
+  - Creates ManagedSafeModule instances for Safes in the group
+  - Executes cross-module operations across all Safes in the group
+
+- **ManagedSafeModule** (UUPS Proxy per Safe): One instance per Safe in a group
+  - Created by SafeModuleManager when Safe joins group
+  - Owner: The Safe itself
+  - Each Safe controls its own module operations and upgrades
+  - Must be enabled on the Safe via Safe's interface
+
+## Ownership Model
+- **Registry Level**: Deployer owns Registry, can upgrade Registry and update templates
+- **Group Level**: Governance Safe owns Manager, can execute cross-module operations
+- **Safe Level**: Safe owns its Module, controls individual upgrades and operations
+
+## Module Enablement
+- Each ManagedSafeModule must be individually enabled on its respective Safe
+- Enablement tracked via Safe's `EnabledModule` event (indexed by subgraph)
+- Module is functional only after Safe enables it
+
+## Upgrade Process
+See detailed documentation in:
+- **Contract Upgrades**: `docs/UPGRADE_PROCESS.md`
+  - 5 upgrade scenarios explained
+  - Step-by-step procedures with Makefile commands
+  - Security checklist and best practices
+  - Version history tracking
+
+- **Subgraph Upgrades**: `docs/SUBGRAPH_UPGRADES.md`
+  - Event compatibility matrix
+  - Impact analysis for each upgrade scenario
+  - Testing procedures
+  - Deployment commands
+
+### Quick Reference: Upgrade Levels
+1. **Registry Upgrade**: `Registry.upgradeTo()` - Affects Registry only, future groups
+2. **Manager Template Update**: `Registry.updateManagerImplementation()` - Future groups only
+3. **Manager Upgrade**: `Manager.upgradeTo()` - Specific group, requires governance Safe
+4. **Module Template Update**: `Manager.updateModuleTemplate()` - Future Safes in group
+5. **Module Upgrade**: `Module.upgradeTo()` - Individual Safe, requires Safe multisig
 
 # Foundry Version Management
 - Current: 1.3.2-nightly (8cd97db, Sept 3, 2025)  
@@ -119,3 +163,4 @@ function _disableModuleOnSafe(address safe, address module) internal {
 
 **Priority**: HIGH - Fix before production deployment
 - only commit manifest.json if i ask for it
+- dont commit that markdowns used to gg24 and others form submissions

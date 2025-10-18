@@ -9,9 +9,9 @@ dataSources:
     name: SyncGroupRegistry
     network: gnosis
     source:
-      address: "0xa74c4551f0b32e0754dfecff5dc0239f23cc7844"
+      address: "0x1d9aafd517d85450bD85169eF291298a016da202"
       abi: SyncGroupRegistry
-      startBlock: 42052181
+      startBlock: 42680229
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -54,6 +54,7 @@ templates:
         - ManagedSafeModule
         - CrossModuleCall
         - SafeNetworkRemoval
+        - ModuleOperationFailure
       abis:
         - name: SafeModuleManager
           file: ../../out/SafeModuleManager.sol/SafeModuleManager.json
@@ -70,6 +71,8 @@ templates:
           handler: handleSafeToModuleSet
         - event: ModuleDisabledOnSafe(indexed address,indexed address)
           handler: handleModuleDisabledOnSafe
+        - event: ModuleOperationFailed(indexed address,indexed address,string,bytes)
+          handler: handleModuleOperationFailed
       file: ./src/mappings/manager.ts
 
   # ManagedSafeModule template - One per module created

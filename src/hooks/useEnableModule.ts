@@ -43,6 +43,9 @@ export function useEnableModule() {
           value: '0',
           data,
         }],
+        params: {
+          safeTxGas: 10000000, // 10M gas limit for complex transactions
+        },
       });
 
       toast.success('Transaction proposed! Waiting for signatures...', { id: 'enable-module' });

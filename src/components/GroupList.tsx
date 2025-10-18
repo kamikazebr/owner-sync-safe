@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useOwnerGroups, useGroupDetails } from '@/hooks/useSyncGroupRegistry';
-import { Users, Clock, CheckCircle, XCircle, ChevronRight, ChevronDown, Loader2 } from 'lucide-react';
+import { Users, Clock, CheckCircle, XCircle, ChevronRight, ChevronDown, Loader2, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { copyToClipboard } from '@/lib/clipboard';
+import { getBlockExplorerUrl } from '@/lib/deployments';
 
 interface GroupListProps {
   onGroupSelect: (groupId: bigint) => void;
@@ -202,6 +204,14 @@ interface GroupCardProps {
 
 function GroupCard({ groupId, chainId, isSelected, onSelect }: GroupCardProps) {
   const { group } = useGroupDetails(groupId, chainId);
+  const explorerUrl = getBlockExplorerUrl(chainId);
+
+  const handleCopyManager = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card selection when copying
+    if (group?.manager) {
+      copyToClipboard(group.manager, 'manager address');
+    }
+  };
 
   if (!group) {
     return (
@@ -247,9 +257,25 @@ function GroupCard({ groupId, chainId, isSelected, onSelect }: GroupCardProps) {
           <Clock className="h-4 w-4 mr-2" />
           <span>Created {createdDate.toLocaleDateString()}</span>
         </div>
-        <div className="flex items-center">
-          <Users className="h-4 w-4 mr-2" />
-          <span className="text-xs font-mono truncate">{group.manager.slice(0, 10)}...</span>
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 flex-shrink-0" />
+          <span
+            onClick={handleCopyManager}
+            className="text-xs font-mono truncate cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors"
+            title="Click to copy manager address"
+          >
+            {group.manager.slice(0, 10)}...
+          </span>
+          <a
+            href={`${explorerUrl}/address/${group.manager}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex-shrink-0"
+            title="View on explorer"
+          >
+            <ExternalLink className="h-3 w-3" />
+          </a>
         </div>
       </div>
     </button>

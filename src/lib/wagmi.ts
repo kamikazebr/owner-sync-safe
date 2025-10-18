@@ -28,7 +28,7 @@ export const config = getDefaultConfig({
   appName: 'Owner Sync Safe',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'placeholder-project-id',
   chains: [customGnosis] as const,
-  ssr: true,
+  ssr: false, // Disable SSR to prevent IndexedDB errors
   transports: {
     [gnosis.id]: http(),
   },

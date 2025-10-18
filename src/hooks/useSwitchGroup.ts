@@ -87,6 +87,9 @@ export function useSwitchGroup() {
               value: batchTransaction.value.toString(),
               data: batchTransaction.data,
             }],
+            params: {
+              safeTxGas: 10000000, // 10M gas limit for complex transactions
+            },
           });
 
           toast.success('Transaction proposed to Safe owners', { id: 'switch-step-3' });

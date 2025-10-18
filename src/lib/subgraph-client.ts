@@ -89,3 +89,44 @@ export const GET_GROUP_BY_MANAGER = `
     }
   }
 `;
+
+export const GET_OPERATION_FAILURES = `
+  query GetOperationFailures($managerAddress: Bytes!, $first: Int = 100) {
+    moduleOperationFailures(
+      where: { manager: $managerAddress }
+      orderBy: timestamp
+      orderDirection: desc
+      first: $first
+    ) {
+      id
+      module {
+        id
+        safe
+      }
+      safe
+      operation
+      errorData
+      timestamp
+      blockNumber
+      transactionHash
+    }
+  }
+`;
+
+export const GET_RECENT_FAILURES_FOR_TX = `
+  query GetRecentFailuresForTx($transactionHash: Bytes!) {
+    moduleOperationFailures(
+      where: { transactionHash: $transactionHash }
+    ) {
+      id
+      module {
+        id
+        safe
+      }
+      safe
+      operation
+      errorData
+      timestamp
+    }
+  }
+`;

@@ -10,6 +10,7 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "submodule": "git submodule update --init --recursive",
+    "sync-configs": "tsx scripts/sync-configs.ts",
     "update-deployments": "tsx scripts/update-deployments.ts",
     "generate": "wagmi generate"
   },

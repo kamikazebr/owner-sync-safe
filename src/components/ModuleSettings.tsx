@@ -2,13 +2,16 @@
 
 import { useState } from 'react';
 import { Address } from 'viem';
-import { Settings, UserPlus, UserMinus, UserCheck, Hash, Trash2, Plus } from 'lucide-react';
+import { Settings, UserPlus, UserMinus, UserCheck, Hash, Trash2, Plus, ExternalLink } from 'lucide-react';
 import { useManagedModule } from '@/hooks/useManagedModule';
 import { useSafeContract } from '@/hooks/useSafeContract';
-import { truncateAddress, getPreviousOwner, isValidAddress, isValidThreshold, cn } from '@/lib/utils';
+import { getPreviousOwner, isValidAddress, isValidThreshold, cn } from '@/lib/utils';
 import { theme } from '@/lib/theme';
 import * as Dialog from '@radix-ui/react-dialog';
 import toast from 'react-hot-toast';
+import { useAccount } from 'wagmi';
+import { copyToClipboard } from '@/lib/clipboard';
+import { getBlockExplorerUrl } from '@/lib/deployments';
 
 interface ModuleSettingsProps {
   moduleAddress?: Address;
@@ -26,9 +29,11 @@ interface OwnerOperation {
 }
 
 export function ModuleSettings({ moduleAddress, safeAddress }: ModuleSettingsProps) {
+  const { chainId } = useAccount();
   const [isOpen, setIsOpen] = useState(false);
   const [operation, setOperation] = useState<OwnerOperation>({ type: 'addOwner' });
   const [loading, setLoading] = useState(false);
+  const explorerUrl = getBlockExplorerUrl(chainId || 100);
 
   const {
     moduleConfig,
@@ -247,7 +252,7 @@ export function ModuleSettings({ moduleAddress, safeAddress }: ModuleSettingsPro
                         <option value="">Select an owner</option>
                         {moduleConfig.owners.map((owner) => (
                           <option key={owner} value={owner}>
-                            {truncateAddress(owner, 8)}
+                            {owner}
                           </option>
                         ))}
                       </select>
@@ -282,7 +287,7 @@ export function ModuleSettings({ moduleAddress, safeAddress }: ModuleSettingsPro
                         <option value="">Select an owner</option>
                         {moduleConfig.owners.map((owner) => (
                           <option key={owner} value={owner}>
-                            {truncateAddress(owner, 8)}
+                            {owner}
                           </option>
                         ))}
                       </select>
@@ -352,10 +357,27 @@ export function ModuleSettings({ moduleAddress, safeAddress }: ModuleSettingsPro
             {moduleConfig.owners.map((owner, index) => (
               <div
                 key={owner}
-                className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900/30 rounded"
+                className="flex items-center justify-between gap-2 p-2 bg-gray-50 dark:bg-gray-900/30 rounded"
               >
-                <span className="font-mono text-sm text-gray-900 dark:text-white">{truncateAddress(owner, 8)}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">#{index + 1}</span>
+                <div
+                  onClick={() => copyToClipboard(owner, 'owner address')}
+                  className="font-mono text-xs text-gray-900 dark:text-white break-all flex-1 cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                  title="Click to copy owner address"
+                >
+                  {owner}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <a
+                    href={`${explorerUrl}/address/${owner}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    title="View on explorer"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">#{index + 1}</span>
+                </div>
               </div>
             ))}
           </div>

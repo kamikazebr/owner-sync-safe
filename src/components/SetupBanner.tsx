@@ -90,26 +90,36 @@ export function SetupBanner({
 
   const handleCopy = async (text: string, field: string) => {
     try {
-      // Try modern Clipboard API first
+      // Try modern Clipboard API first (requires clipboard-write permission)
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
         setCopiedField(field);
         setTimeout(() => setCopiedField(null), 2000);
         return;
       }
+    } catch (error) {
+      // Modern API failed, fall through to legacy method
+      console.log('Clipboard API failed, using fallback:', error);
+    }
 
-      // Fallback for iframe contexts (like Safe app)
+    try {
+      // Fallback using document.execCommand (works in sandboxed iframes)
       const textArea = document.createElement('textarea');
       textArea.value = text;
+      // Position off-screen but keep it visible (display:none or visibility:hidden breaks copy)
       textArea.style.position = 'fixed';
       textArea.style.left = '-999999px';
       textArea.style.top = '-999999px';
+      textArea.setAttribute('readonly', '');
       document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
 
+      // Select the text
+      textArea.select();
+      textArea.setSelectionRange(0, text.length);
+
+      // Execute copy command
       const successful = document.execCommand('copy');
-      textArea.remove();
+      document.body.removeChild(textArea);
 
       if (successful) {
         setCopiedField(field);

@@ -1,13 +1,13 @@
 {
   "name": "owner-sync-safe-subgraph",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "pnpm manifest:gnosis && graph codegen && graph build",
     "manifest:gnosis": "node ./src/scripts/mustache.js gnosis",
     "codegen": "graph codegen",
-    "deploy:gnosis": "graph deploy --studio owner-sync-safe-gnosis",
+    "deploy:gnosis": "graph deploy --studio owner-sync-safe-gnosis --version-label v0.1.1",
     "create-local": "graph create --node http://localhost:8020/ owner-sync-safe",
     "deploy:local": "pnpm manifest:gnosis && graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 owner-sync-safe"
   },

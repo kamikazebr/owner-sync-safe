@@ -1,13 +1,56 @@
 'use client';
 
-import { CheckCircle, Shield, Users } from 'lucide-react';
+import { CheckCircle, Shield, Users, ExternalLink } from 'lucide-react';
 import { ActiveGroupInfo } from '@/hooks/useActiveGroups';
+import { useAccount } from 'wagmi';
+import { getBlockExplorerUrl } from '@/lib/deployments';
+import toast from 'react-hot-toast';
 
 interface ActiveGroupsBannerProps {
   activeGroups: ActiveGroupInfo[];
 }
 
 export function ActiveGroupsBanner({ activeGroups }: ActiveGroupsBannerProps) {
+  const { chainId } = useAccount();
+  const explorerUrl = getBlockExplorerUrl(chainId || 100);
+
+  const handleCopy = async (text: string, label: string) => {
+    try {
+      // Try modern Clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        toast.success(`Copied ${label} to clipboard!`);
+        return;
+      }
+    } catch (error) {
+      console.log('Clipboard API failed, using fallback:', error);
+    }
+
+    try {
+      // Fallback using document.execCommand
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      textArea.setAttribute('readonly', '');
+      document.body.appendChild(textArea);
+      textArea.select();
+      textArea.setSelectionRange(0, text.length);
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        toast.success(`Copied ${label} to clipboard!`);
+      } else {
+        toast.error('Copy failed. Please copy manually.');
+      }
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast.error('Copy failed. Please copy manually.');
+    }
+  };
+
   if (activeGroups.length === 0) return null;
 
   const isMultiple = activeGroups.length > 1;
@@ -47,18 +90,69 @@ export function ActiveGroupsBanner({ activeGroups }: ActiveGroupsBannerProps) {
                         Active
                       </span>
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1 ml-6">
-                      <div>
-                        <span className="font-medium">Owner:</span>{' '}
-                        <span className="font-mono">{group.groupOwner.slice(0, 6)}...{group.groupOwner.slice(-4)}</span>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1.5 ml-6">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <span className="font-medium">Owner:</span>{' '}
+                          <span
+                            onClick={() => handleCopy(group.groupOwner, 'owner')}
+                            className="font-mono cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                            title="Click to copy full address"
+                          >
+                            {group.groupOwner.slice(0, 6)}...{group.groupOwner.slice(-4)}
+                          </span>
+                        </div>
+                        <a
+                          href={`${explorerUrl}/address/${group.groupOwner}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                          title="View on explorer"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
                       </div>
-                      <div>
-                        <span className="font-medium">Manager:</span>{' '}
-                        <span className="font-mono">{group.managerAddress.slice(0, 6)}...{group.managerAddress.slice(-4)}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <span className="font-medium">Manager:</span>{' '}
+                          <span
+                            onClick={() => handleCopy(group.managerAddress, 'manager')}
+                            className="font-mono cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                            title="Click to copy full address"
+                          >
+                            {group.managerAddress.slice(0, 6)}...{group.managerAddress.slice(-4)}
+                          </span>
+                        </div>
+                        <a
+                          href={`${explorerUrl}/address/${group.managerAddress}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                          title="View on explorer"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
                       </div>
-                      <div>
-                        <span className="font-medium">Module:</span>{' '}
-                        <span className="font-mono">{group.moduleAddress.slice(0, 6)}...{group.moduleAddress.slice(-4)}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <span className="font-medium">Module:</span>{' '}
+                          <span
+                            onClick={() => handleCopy(group.moduleAddress, 'module')}
+                            className="font-mono cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                            title="Click to copy full address"
+                          >
+                            {group.moduleAddress.slice(0, 6)}...{group.moduleAddress.slice(-4)}
+                          </span>
+                        </div>
+                        <a
+                          href={`${explorerUrl}/address/${group.moduleAddress}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                          title="View on explorer"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -78,18 +172,69 @@ export function ActiveGroupsBanner({ activeGroups }: ActiveGroupsBannerProps) {
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Group details:
                 </p>
-                <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1.5 mb-4">
-                  <div>
-                    <span className="font-medium">Owner:</span>{' '}
-                    <span className="font-mono">{activeGroups[0].groupOwner.slice(0, 6)}...{activeGroups[0].groupOwner.slice(-4)}</span>
+                <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2 mb-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <span className="font-medium">Owner:</span>{' '}
+                      <span
+                        onClick={() => handleCopy(activeGroups[0].groupOwner, 'owner')}
+                        className="font-mono cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                        title="Click to copy full address"
+                      >
+                        {activeGroups[0].groupOwner.slice(0, 6)}...{activeGroups[0].groupOwner.slice(-4)}
+                      </span>
+                    </div>
+                    <a
+                      href={`${explorerUrl}/address/${activeGroups[0].groupOwner}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                      title="View on explorer"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
                   </div>
-                  <div>
-                    <span className="font-medium">Manager:</span>{' '}
-                    <span className="font-mono">{activeGroups[0].managerAddress.slice(0, 6)}...{activeGroups[0].managerAddress.slice(-4)}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <span className="font-medium">Manager:</span>{' '}
+                      <span
+                        onClick={() => handleCopy(activeGroups[0].managerAddress, 'manager')}
+                        className="font-mono cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                        title="Click to copy full address"
+                      >
+                        {activeGroups[0].managerAddress.slice(0, 6)}...{activeGroups[0].managerAddress.slice(-4)}
+                      </span>
+                    </div>
+                    <a
+                      href={`${explorerUrl}/address/${activeGroups[0].managerAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                      title="View on explorer"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
                   </div>
-                  <div>
-                    <span className="font-medium">Module:</span>{' '}
-                    <span className="font-mono">{activeGroups[0].moduleAddress.slice(0, 6)}...{activeGroups[0].moduleAddress.slice(-4)}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <span className="font-medium">Module:</span>{' '}
+                      <span
+                        onClick={() => handleCopy(activeGroups[0].moduleAddress, 'module')}
+                        className="font-mono cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                        title="Click to copy full address"
+                      >
+                        {activeGroups[0].moduleAddress.slice(0, 6)}...{activeGroups[0].moduleAddress.slice(-4)}
+                      </span>
+                    </div>
+                    <a
+                      href={`${explorerUrl}/address/${activeGroups[0].moduleAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                      title="View on explorer"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
                   </div>
                 </div>
 

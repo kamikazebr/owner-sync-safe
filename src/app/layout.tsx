@@ -1,9 +1,14 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Providers } from './providers';
+import dynamic from 'next/dynamic';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
+
+// Load providers only on client to avoid SSR issues with WalletConnect/IndexedDB
+const Providers = dynamic(() => import('./providers').then((mod) => ({ default: mod.Providers })), {
+  ssr: false,
+});
 
 export const metadata: Metadata = {
   title: 'Owner Sync Safe',

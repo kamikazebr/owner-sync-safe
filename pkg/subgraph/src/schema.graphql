@@ -27,6 +27,7 @@ type SafeModuleManager @entity(immutable: false) {
   totalModules: BigInt!
   modules: [ManagedSafeModule!]! @derivedFrom(field: "manager")
   crossModuleCalls: [CrossModuleCall!]! @derivedFrom(field: "manager")
+  operationFailures: [ModuleOperationFailure!]! @derivedFrom(field: "manager")
 }
 
 # Module Level (Dynamic Templates)
@@ -127,6 +128,18 @@ type SafeNetworkRemoval @entity(immutable: true) {
   id: ID!  # txHash-logIndex
   safe: Bytes!
   module: Bytes
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type ModuleOperationFailure @entity(immutable: true) {
+  id: ID!  # txHash-logIndex
+  module: ManagedSafeModule!
+  manager: SafeModuleManager!
+  safe: Bytes!
+  operation: String!
+  errorData: Bytes!
   timestamp: BigInt!
   blockNumber: BigInt!
   transactionHash: Bytes!

@@ -8,9 +8,9 @@ dataSources:
     name: SyncGroupRegistry
     network: gnosis
     source:
-      address: "0xa74c4551f0b32e0754dfecff5dc0239f23cc7844"
+      address: "0x1d9aafd517d85450bD85169eF291298a016da202"
       abi: SyncGroupRegistry
-      startBlock: 42052181
+      startBlock: 42680229
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -21,9 +21,9 @@ dataSources:
         - SafeModuleManager
       abis:
         - name: SyncGroupRegistry
-          file: SyncGroupRegistry/SyncGroupRegistry.json
+          file: ../out/SyncGroupRegistry.sol/SyncGroupRegistry.json
         - name: SafeModuleManager
-          file: SyncGroupRegistry/SafeModuleManager.json
+          file: ../out/SafeModuleManager.sol/SafeModuleManager.json
       eventHandlers:
         - event: GroupCreated(indexed uint256,indexed address,address,string)
           handler: handleGroupCreated
@@ -51,11 +51,12 @@ templates:
         - ManagedSafeModule
         - CrossModuleCall
         - SafeNetworkRemoval
+        - ModuleOperationFailure
       abis:
         - name: SafeModuleManager
-          file: SafeModuleManager/SafeModuleManager.json
+          file: ../out/SafeModuleManager.sol/SafeModuleManager.json
         - name: ManagedSafeModule
-          file: SafeModuleManager/ManagedSafeModule.json
+          file: ../out/ManagedSafeModule.sol/ManagedSafeModule.json
       eventHandlers:
         - event: ModuleCreated(indexed address,indexed address)
           handler: handleModuleCreated
@@ -67,6 +68,8 @@ templates:
           handler: handleSafeToModuleSet
         - event: ModuleDisabledOnSafe(indexed address,indexed address)
           handler: handleModuleDisabledOnSafe
+        - event: ModuleOperationFailed(indexed address,indexed address,string,bytes)
+          handler: handleModuleOperationFailed
       file: templates/SafeModuleManager/SafeModuleManager.wasm
   - kind: ethereum/contract
     name: ManagedSafeModule
@@ -85,7 +88,7 @@ templates:
         - OwnerSyncEvent
       abis:
         - name: ManagedSafeModule
-          file: ManagedSafeModule/ManagedSafeModule.json
+          file: ../out/ManagedSafeModule.sol/ManagedSafeModule.json
       eventHandlers:
         - event: SafeConfigured(indexed address)
           handler: handleSafeConfigured
@@ -121,7 +124,7 @@ templates:
         - ManagedSafeModule
       abis:
         - name: Safe
-          file: Safe/Safe.json
+          file: Safe/abis/Safe.json
       eventHandlers:
         - event: EnabledModule(address)
           handler: handleEnabledModule

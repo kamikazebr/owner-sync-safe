@@ -5,7 +5,7 @@ import { Address } from 'viem';
 import { RefreshCw, Users, CheckCircle, AlertCircle, Zap, Settings } from 'lucide-react';
 import { useManagedModule } from '@/hooks/useManagedModule';
 import { useSafeContract } from '@/hooks/useSafeContract';
-import { truncateAddress, formatSyncStatus, cn } from '@/lib/utils';
+import { formatSyncStatus, cn } from '@/lib/utils';
 import * as Switch from '@radix-ui/react-switch';
 
 interface OwnerSyncProps {
@@ -118,8 +118,8 @@ export function OwnerSync({ moduleAddress, safeAddress }: OwnerSyncProps) {
 
           <div className="mt-3 space-y-1">
             {safeOwners.slice(0, 3).map((owner, index) => (
-              <div key={owner} className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                {truncateAddress(owner, 6)}
+              <div key={owner} className="text-xs font-mono text-gray-600 dark:text-gray-400 break-all">
+                {owner}
               </div>
             ))}
             {safeOwners.length > 3 && (
@@ -160,8 +160,8 @@ export function OwnerSync({ moduleAddress, safeAddress }: OwnerSyncProps) {
 
           <div className="mt-3 space-y-1">
             {moduleConfig.owners.slice(0, 3).map((owner, index) => (
-              <div key={owner} className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                {truncateAddress(owner, 6)}
+              <div key={owner} className="text-xs font-mono text-gray-600 dark:text-gray-400 break-all">
+                {owner}
               </div>
             ))}
             {moduleConfig.owners.length > 3 && (

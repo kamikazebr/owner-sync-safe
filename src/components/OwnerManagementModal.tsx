@@ -12,15 +12,20 @@ import {
   Hash,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 import { useModuleManager } from '@/hooks/useModuleManager';
 import { useGroupSafes } from '@/hooks/useGroupSafes';
 import { useSafeContract } from '@/hooks/useSafeContract';
+import { useCrossSafeOwnerStatus } from '@/hooks/useOwnerSyncStatus';
 import { useAccount } from 'wagmi';
-import { truncateAddress, getPreviousOwner, isValidAddress, isValidThreshold, cn, extractSafeAddress } from '@/lib/utils';
+import { getPreviousOwner, isValidAddress, isValidThreshold, cn, extractSafeAddress } from '@/lib/utils';
 import { theme } from '@/lib/theme';
 import toast from 'react-hot-toast';
+import { OwnerSyncStatusModal } from './OwnerSyncStatusModal';
+import { copyToClipboard } from '@/lib/clipboard';
+import { getBlockExplorerUrl } from '@/lib/deployments';
 
 interface OwnerManagementModalProps {
   isOpen: boolean;
@@ -47,6 +52,8 @@ export function OwnerManagementModal({
   const [activeTab, setActiveTab] = useState<OperationType>('addOwner');
   const [operation, setOperation] = useState<OwnerOperation>({ type: 'addOwner' });
   const [loading, setLoading] = useState(false);
+  const [showSyncStatus, setShowSyncStatus] = useState(false);
+  const explorerUrl = getBlockExplorerUrl(chainId || 100);
 
   const {
     addSafeOwnerToAll,
@@ -58,11 +65,17 @@ export function OwnerManagementModal({
 
   const { safes, refetch: refetchSafes } = useGroupSafes(managerAddress, chainId || 100);
 
-  // Get first Safe address to fetch owners from
-  const firstSafeAddress = safes && safes.length > 0 ? safes[0].safeAddress : undefined;
+  // Get cross-Safe owner status
+  const crossSafeStatus = useCrossSafeOwnerStatus(safes || [], chainId);
+
+  // Get first ACTIVE Safe address to fetch owners from (only show owners from enabled Safes)
+  const firstSafeAddress = safes?.find(s => s.isActive)?.safeAddress;
 
   // Get owners and threshold from first Safe
   const { owners, threshold } = useSafeContract(firstSafeAddress);
+
+  // Check if Safes are out of sync
+  const safesOutOfSync = crossSafeStatus && !crossSafeStatus.allSafesInSync;
 
   const handleSubmit = async () => {
     if (!managerAddress) return;
@@ -148,10 +161,11 @@ export function OwnerManagementModal({
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="bg-black/50 fixed inset-0 z-50" />
-        <Dialog.Content className="bg-white dark:bg-gray-800 fixed inset-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg sm:rounded-lg z-50 flex flex-col max-h-screen sm:max-h-[90vh]">
+    <>
+      <Dialog.Root open={isOpen} onOpenChange={onClose}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="bg-black/50 fixed inset-0 z-50" />
+          <Dialog.Content className="bg-white dark:bg-gray-800 fixed inset-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg sm:rounded-lg z-50 flex flex-col max-h-screen sm:max-h-[90vh]">
           {/* Header - Fixed */}
           <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div>
@@ -159,7 +173,7 @@ export function OwnerManagementModal({
                 Manage Owners - All Safes
               </Dialog.Title>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Changes will be applied to all {safes?.length || 0} Safes in the group
+                Changes will be applied to all {safes?.filter(s => s.isActive).length || 0} Safes in the group
               </p>
             </div>
             <Dialog.Close asChild>
@@ -225,6 +239,30 @@ export function OwnerManagementModal({
 
             {/* Tab Content - Scrollable */}
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+              {/* Sync Warning Banner */}
+              {safesOutOfSync && (
+                <div className="mb-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-yellow-900 dark:text-yellow-300">
+                        Safes have different owners
+                      </p>
+                      <p className="text-xs text-yellow-800 dark:text-yellow-400 mt-1">
+                        The {safes?.filter(s => s.isActive).length || 0} Safes in this group have different owner sets.
+                        Changes will be applied to all Safes.
+                      </p>
+                      <button
+                        onClick={() => setShowSyncStatus(true)}
+                        className="mt-2 text-xs font-medium text-yellow-700 dark:text-yellow-300 hover:text-yellow-900 dark:hover:text-yellow-100 underline"
+                      >
+                        View detailed comparison →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Current Owners Info */}
               <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
@@ -247,10 +285,27 @@ export function OwnerManagementModal({
                       {owners.map((owner, index) => (
                         <div
                           key={owner}
-                          className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded text-xs"
+                          className="flex items-center justify-between gap-2 p-2 bg-white dark:bg-gray-800 rounded text-xs"
                         >
-                          <span className="font-mono text-gray-900 dark:text-gray-100">{truncateAddress(owner, 8)}</span>
-                          <span className="text-gray-500 dark:text-gray-400">#{index + 1}</span>
+                          <div
+                            onClick={() => copyToClipboard(owner, 'owner address')}
+                            className="font-mono text-xs text-gray-900 dark:text-gray-100 break-all flex-1 cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                            title="Click to copy owner address"
+                          >
+                            {owner}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <a
+                              href={`${explorerUrl}/address/${owner}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                              title="View on explorer"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                            <span className="text-gray-500 dark:text-gray-400">#{index + 1}</span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -318,7 +373,7 @@ export function OwnerManagementModal({
                     <option value="">Select an owner</option>
                     {owners.map((owner) => (
                       <option key={owner} value={owner}>
-                        {truncateAddress(owner, 8)}
+                        {owner}
                       </option>
                     ))}
                   </select>
@@ -363,7 +418,7 @@ export function OwnerManagementModal({
                     <option value="">Select an owner</option>
                     {owners.map((owner) => (
                       <option key={owner} value={owner}>
-                        {truncateAddress(owner, 8)}
+                        {owner}
                       </option>
                     ))}
                   </select>
@@ -445,5 +500,14 @@ export function OwnerManagementModal({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+
+    {/* Owner Sync Status Modal */}
+    <OwnerSyncStatusModal
+      isOpen={showSyncStatus}
+      onClose={() => setShowSyncStatus(false)}
+      safes={safes || []}
+      chainId={chainId}
+    />
+    </>
   );
 }

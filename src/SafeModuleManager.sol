@@ -42,6 +42,7 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
     event CrossModuleCall(address indexed caller, address[] modules);
     event SafeToModuleSet(address indexed safe, address indexed module);
     event ModuleDisabledOnSafe(address indexed safe, address indexed module);
+    event ModuleOperationFailed(address indexed module, address indexed safe, string operation, bytes errorData);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -66,16 +67,22 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
      * @dev Execute operation on a single module with proper error handling
      * @param module Address of the module to call
      * @param callData Encoded function call data
+     * @param operationName Name of the operation for error logging
      * @return success True if the operation succeeded
      */
     function _executeOnModule(
         address module,
         bytes memory callData,
-        string memory /* operationName */
+        string memory operationName
     ) internal returns (bool success) {
-        (bool callSuccess, ) = module.call(callData);
-        success = callSuccess;
+        (bool callSuccess, bytes memory returnData) = module.call(callData);
 
+        if (!callSuccess) {
+            address safe = ManagedSafeModule(module).avatar();
+            emit ModuleOperationFailed(module, safe, operationName, returnData);
+        }
+
+        return callSuccess;
     }
     
     /**
@@ -89,7 +96,15 @@ contract SafeModuleManager is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
         string memory operationName
     ) internal returns (uint256 successCount) {
         for (uint i = 0; i < allModules.length; i++) {
-            if (_executeOnModule(allModules[i], callData, operationName)) {
+            address module = allModules[i];
+            address safe = ManagedSafeModule(module).avatar();
+
+            // Check if module is actually enabled on the Safe
+            if (!ISafe(safe).isModuleEnabled(module)) {
+                continue; // Skip modules that aren't enabled on their Safe
+            }
+
+            if (_executeOnModule(module, callData, operationName)) {
                 successCount++;
             }
         }

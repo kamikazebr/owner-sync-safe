@@ -1,0 +1,25 @@
+{
+  "networks": [
+    {
+      "name": "gnosis",
+      "chainId": 100,
+      "testnet": false,
+      "ENVS": {
+        "SENDER": "0x2F9e113434aeBDd70bB99cB6505e1F726C578D6d"
+      },
+      "PROXIES": {
+        "SyncGroupRegistry": "0x1d9aafd517d85450bD85169eF291298a016da202"
+      },
+      "IMPLEMENTATIONS": {
+        "SyncGroupRegistry": "0x9422076c9206aC52D0Df4527f5517fAb8dda11a8",
+        "SafeModuleManager": "0x3CB556694b77974D6BA0184c0cD58da26ebfCAB5",
+        "ManagedSafeModule": "0x62D0a51d937887Df56D6dF250Eb1eba79be1d2Ce"
+      },
+      "METADATA": {
+        "deploymentBlock": 42680229,
+        "deploymentTx": "0x8882a6507c59cfcfe6ab76dc417923d773a0e8be91d12509ec59f016f4ce681d",
+        "notes": "All contracts deployed in single transaction on 2025-10-18"
+      }
+    }
+  ]
+}

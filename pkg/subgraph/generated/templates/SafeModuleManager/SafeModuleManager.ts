@@ -134,6 +134,36 @@ export class ModuleDisabledOnSafe__Params {
   }
 }
 
+export class ModuleOperationFailed extends ethereum.Event {
+  get params(): ModuleOperationFailed__Params {
+    return new ModuleOperationFailed__Params(this);
+  }
+}
+
+export class ModuleOperationFailed__Params {
+  _event: ModuleOperationFailed;
+
+  constructor(event: ModuleOperationFailed) {
+    this._event = event;
+  }
+
+  get module(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get safe(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get operation(): string {
+    return this._event.parameters[2].value.toString();
+  }
+
+  get errorData(): Bytes {
+    return this._event.parameters[3].value.toBytes();
+  }
+}
+
 export class OwnershipTransferStarted extends ethereum.Event {
   get params(): OwnershipTransferStarted__Params {
     return new OwnershipTransferStarted__Params(this);

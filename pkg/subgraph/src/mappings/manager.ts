@@ -5,12 +5,14 @@ import {
   CrossModuleCall,
   SafeToModuleSet,
   ModuleDisabledOnSafe,
+  ModuleOperationFailed,
 } from "../../generated/templates/SafeModuleManager/SafeModuleManager";
 import {
   SafeModuleManager,
   ManagedSafeModule,
   CrossModuleCall as CrossModuleCallEntity,
   SafeNetworkRemoval,
+  ModuleOperationFailure,
 } from "../../generated/schema";
 import {
   ManagedSafeModule as ManagedSafeModuleTemplate,
@@ -149,4 +151,38 @@ export function handleModuleDisabledOnSafe(event: ModuleDisabledOnSafe): void {
     module.isActive = false;
     module.save();
   }
+}
+
+export function handleModuleOperationFailed(event: ModuleOperationFailed): void {
+  log.warning("ModuleOperationFailed: module={}, safe={}, operation={}", [
+    event.params.module.toHexString(),
+    event.params.safe.toHexString(),
+    event.params.operation,
+  ]);
+
+  const failureId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString();
+  const failure = new ModuleOperationFailure(failureId);
+
+  const moduleAddress = event.params.module.toHexString();
+  const module = ManagedSafeModule.load(moduleAddress);
+  if (module == null) {
+    log.error("Module not found for operation failure: {}", [moduleAddress]);
+    return;
+  }
+
+  failure.module = moduleAddress;
+  failure.manager = event.address.toHexString();
+  failure.safe = event.params.safe;
+  failure.operation = event.params.operation;
+  failure.errorData = event.params.errorData;
+  failure.timestamp = event.block.timestamp;
+  failure.blockNumber = event.block.number;
+  failure.transactionHash = event.transaction.hash;
+  failure.save();
+
+  log.info("ModuleOperationFailure recorded: id={}, module={}, operation={}", [
+    failureId,
+    moduleAddress,
+    event.params.operation,
+  ]);
 }

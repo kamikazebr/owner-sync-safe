@@ -97,12 +97,48 @@ export function SafeAppRedirectBanner() {
     return `https://app.safe.global/apps/open?safe=${chain}:${safeAddress}&appUrl=${appUrl}`;
   };
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     const link = generateSafeAppLink();
-    if (link) {
-      navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+    if (!link) return;
+
+    try {
+      // Try modern Clipboard API first (requires clipboard-write permission)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(link);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      }
+    } catch (error) {
+      // Modern API failed, fall through to legacy method
+      console.log('Clipboard API failed, using fallback:', error);
+    }
+
+    try {
+      // Fallback using document.execCommand (works in sandboxed iframes)
+      const textArea = document.createElement('textarea');
+      textArea.value = link;
+      // Position off-screen but keep it visible (display:none or visibility:hidden breaks copy)
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      textArea.setAttribute('readonly', '');
+      document.body.appendChild(textArea);
+
+      // Select the text
+      textArea.select();
+      textArea.setSelectionRange(0, link.length);
+
+      // Execute copy command
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (error) {
+      console.error('Copy failed:', error);
     }
   };
 

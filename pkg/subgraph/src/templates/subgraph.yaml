@@ -54,6 +54,7 @@ templates:
         - ManagedSafeModule
         - CrossModuleCall
         - SafeNetworkRemoval
+        - ModuleOperationFailure
       abis:
         - name: SafeModuleManager
           file: ../../out/SafeModuleManager.sol/SafeModuleManager.json
@@ -70,6 +71,8 @@ templates:
           handler: handleSafeToModuleSet
         - event: ModuleDisabledOnSafe(indexed address,indexed address)
           handler: handleModuleDisabledOnSafe
+        - event: ModuleOperationFailed(indexed address,indexed address,string,bytes)
+          handler: handleModuleOperationFailed
       file: ./src/mappings/manager.ts
 
   # ManagedSafeModule template - One per module created

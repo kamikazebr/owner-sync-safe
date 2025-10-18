@@ -1,59 +1,29 @@
 import { Address } from 'viem';
-import { getSafeModuleManagerAddress, getManagedSafeModuleAddress } from './deployments';
+import { getImplementationAddress, isChainConfigured } from './network-config';
 
-// Fallback contract addresses by chain ID (used when deployments can't be loaded)
-const FALLBACK_CONTRACT_ADDRESSES: Record<number, {
-  SafeModuleManager: Address;
-  ManagedSafeModule: Address; // Template address
-}> = {
-  // Mainnet
-  1: {
-    SafeModuleManager: '0x0000000000000000000000000000000000000000', // Replace with actual address
-    ManagedSafeModule: '0x0000000000000000000000000000000000000000', // Replace with actual address
-  },
-  // Sepolia
-  11155111: {
-    SafeModuleManager: '0x0000000000000000000000000000000000000000', // Replace with actual address
-    ManagedSafeModule: '0x0000000000000000000000000000000000000000', // Replace with actual address
-  },
-  // Gnosis Chain
-  100: {
-    SafeModuleManager: '0x0000000000000000000000000000000000000000', // Replace with actual address
-    ManagedSafeModule: '0x0000000000000000000000000000000000000000', // Replace with actual address
-  },
-};
-
-// Get contract addresses for the current chain
+/**
+ * Get contract addresses for the current chain
+ * Returns implementation addresses for SafeModuleManager and ManagedSafeModule templates
+ */
 export function getContractAddresses(chainId: number) {
-  // Try to load from deployment files first
-  const deployedSafeModuleManager = getSafeModuleManagerAddress(chainId);
-  const deployedManagedSafeModule = getManagedSafeModuleAddress(chainId);
+  const safeModuleManager = getImplementationAddress(chainId, 'SafeModuleManager');
+  const managedSafeModule = getImplementationAddress(chainId, 'ManagedSafeModule');
 
-  // If we have deployment data, use it
-  if (deployedSafeModuleManager && deployedManagedSafeModule) {
-    return {
-      SafeModuleManager: deployedSafeModuleManager,
-      ManagedSafeModule: deployedManagedSafeModule,
-    };
+  if (!safeModuleManager || !managedSafeModule) {
+    throw new Error(`Contracts not deployed on chain ${chainId}. Please check script/config/networks.json`);
   }
 
-  // If we have at least the manager deployed, use it with fallback for module
-  if (deployedSafeModuleManager) {
-    const fallback = FALLBACK_CONTRACT_ADDRESSES[chainId] || FALLBACK_CONTRACT_ADDRESSES[11155111];
-    return {
-      SafeModuleManager: deployedSafeModuleManager,
-      ManagedSafeModule: deployedManagedSafeModule || fallback.ManagedSafeModule,
-    };
-  }
-
-  // Fall back to hardcoded addresses
-  return FALLBACK_CONTRACT_ADDRESSES[chainId] || FALLBACK_CONTRACT_ADDRESSES[11155111];
+  return {
+    SafeModuleManager: safeModuleManager,
+    ManagedSafeModule: managedSafeModule,
+  };
 }
 
-// Check if contracts are deployed on the chain
+/**
+ * Check if contracts are deployed and configured for the chain
+ */
 export function isChainSupported(chainId: number): boolean {
-  const deployedManager = getSafeModuleManagerAddress(chainId);
-  return !!deployedManager || chainId in FALLBACK_CONTRACT_ADDRESSES;
+  return isChainConfigured(chainId);
 }
 
 // Safe-related constants

@@ -1,10 +1,12 @@
 'use client';
 
-import { CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { ActiveGroupInfo } from '@/hooks/useActiveGroups';
 import { useState } from 'react';
-import { truncateAddress } from '@/lib/utils';
 import { Address } from 'viem';
+import { useAccount } from 'wagmi';
+import { getBlockExplorerUrl } from '@/lib/deployments';
+import toast from 'react-hot-toast';
 
 interface CompactActiveGroupBannerProps {
   activeGroups: ActiveGroupInfo[];
@@ -12,6 +14,51 @@ interface CompactActiveGroupBannerProps {
 
 export function CompactActiveGroupBanner({ activeGroups }: CompactActiveGroupBannerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { chainId } = useAccount();
+  const explorerUrl = getBlockExplorerUrl(chainId || 100);
+
+  const handleCopy = async (text: string, label: string) => {
+    try {
+      // Try modern Clipboard API first (requires clipboard-write permission)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        toast.success(`Copied ${label} to clipboard!`);
+        return;
+      }
+    } catch (error) {
+      // Modern API failed, fall through to legacy method
+      console.log('Clipboard API failed, using fallback:', error);
+    }
+
+    try {
+      // Fallback using document.execCommand (works in sandboxed iframes)
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      // Position off-screen but keep it visible (display:none or visibility:hidden breaks copy)
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      textArea.setAttribute('readonly', '');
+      document.body.appendChild(textArea);
+
+      // Select the text
+      textArea.select();
+      textArea.setSelectionRange(0, text.length);
+
+      // Execute copy command
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        toast.success(`Copied ${label} to clipboard!`);
+      } else {
+        toast.error('Copy failed. Please copy manually.');
+      }
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast.error('Copy failed. Please copy manually.');
+    }
+  };
 
   if (activeGroups.length === 0) return null;
 
@@ -78,18 +125,72 @@ export function CompactActiveGroupBanner({ activeGroups }: CompactActiveGroupBan
                   </span>
                 </div>
 
-                <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium w-16">Owner:</span>
-                    <code className="font-mono">{truncateAddress(group.groupOwner as Address)}</code>
+                <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium">Owner:</span>
+                      <code
+                        onClick={() => handleCopy(group.groupOwner, 'owner address')}
+                        className="font-mono break-all cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors ml-2"
+                        title="Click to copy"
+                      >
+                        {group.groupOwner}
+                      </code>
+                    </div>
+                    <a
+                      href={`${explorerUrl}/address/${group.groupOwner}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                      title="View on explorer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium w-16">Manager:</span>
-                    <code className="font-mono">{truncateAddress(group.managerAddress as Address)}</code>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium">Manager:</span>
+                      <code
+                        onClick={() => handleCopy(group.managerAddress, 'manager address')}
+                        className="font-mono break-all cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors ml-2"
+                        title="Click to copy"
+                      >
+                        {group.managerAddress}
+                      </code>
+                    </div>
+                    <a
+                      href={`${explorerUrl}/address/${group.managerAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                      title="View on explorer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium w-16">Module:</span>
-                    <code className="font-mono">{truncateAddress(group.moduleAddress as Address)}</code>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium">Module:</span>
+                      <code
+                        onClick={() => handleCopy(group.moduleAddress, 'module address')}
+                        className="font-mono break-all cursor-pointer hover:text-green-700 dark:hover:text-green-300 transition-colors ml-2"
+                        title="Click to copy"
+                      >
+                        {group.moduleAddress}
+                      </code>
+                    </div>
+                    <a
+                      href={`${explorerUrl}/address/${group.moduleAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                      title="View on explorer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
                   </div>
                 </div>
               </div>

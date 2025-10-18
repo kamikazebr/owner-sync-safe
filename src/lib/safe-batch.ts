@@ -193,6 +193,17 @@ export function buildSafeAppUrl(
 }
 
 /**
+ * Build URL to Safe modules settings page
+ */
+export function buildSafeModulesUrl(
+  chainId: number,
+  safeAddress: Address
+): string {
+  const chainPrefix = chainId === 100 ? 'gno' : 'eth';
+  return `https://app.safe.global/settings/modules?safe=${chainPrefix}:${safeAddress}`;
+}
+
+/**
  * Encode a SyncGroupRegistry.deactivateGroup() call
  */
 export function encodeDeactivateGroup(

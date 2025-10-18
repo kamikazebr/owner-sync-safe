@@ -44,6 +44,7 @@ interface ISafe {
     function addOwnerWithThreshold(address owner, uint256 _threshold) external;
     function enableModule(address module) external;
     function disableModule(address prevModule, address module) external;
+    function isModuleEnabled(address module) external view returns (bool);
 }
 
 interface SafeProxyFactory {

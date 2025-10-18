@@ -49,241 +49,101 @@ lint :; yarn prettier --write src/**/*.sol && prettier --write src/*.sol
 # Generate Gas Snapshots
 snapshot :; forge clean && forge snapshot --optimize --optimizer-runs 1000000
 
-# Fork Mainnet With Hardhat
-mainnet-fork :; npx hardhat node --fork ${ETH_MAINNET_RPC_URL}
-
-# Deploy Factory
-
-# Localhost
-deploy-factory-local: 
-	-forge script script/DeployFactory.s.sol:DeployFactoryScript \
-	--rpc-url http://127.0.0.1:8545 \
-	--sender 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 \
-	--unlocked \
-	--broadcast \
-	-vvvv
-
-deploy-factory-anvil: 
-	-forge script script/DeployFactory.s.sol:DeployFactoryScript \
-	--rpc-url http://127.0.0.1:8545 \
-	--private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
-	--broadcast \
-	-vvvv
-
-# Deploy Factory Multichain
-
-# Base
-deploy-factory-multi-base: 
-	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
-	--rpc-url $(RPC_URL_BASE) \
-	--account pkf \
-	--sig "run(string)" 'base' \
-	--etherscan-api-key $(BASESCAN_API_KEY) \
-	--chain-id 8453 \
-	--broadcast \
-	--legacy \
-	--verify \
-	-vvv
-
-# Deploy Factory v1.1.0 on Base (New Version)
-deploy-factory-v110-base: 
-	@echo "Deploying OwnerModuleFactory v1.1.0 to Base..."
-	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
-	--rpc-url $(RPC_URL_BASE) \
-	--account pkf \
-	--sig "run(string)" 'base-v1.1.0' \
-	--etherscan-api-key $(BASESCAN_API_KEY) \
-	--chain-id 8453 \
-	--broadcast \
-	--legacy \
-	--verify \
-	-vvv
-
-verify-factory-base: 
-	-forge verify-contract \
-  --rpc-url $(RPC_URL_BASE) \
-  0xc42e4af82969e757602E657D92829E9e2F06f6B3 \
-  /home/felipenovaesrocha/Projects/1Hive/gardens-zodiac/src
-OwnerModuleFactory.sol:OwnerModuleFactory \
-	--etherscan-api-key $(ETHERSCAN_API_KEY)
-
-verify-blockscout-base: 
-	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
-	--rpc-url $(RPC_URL_BASE) \
-	--sig "run(string)" 'base' \
-	--chain-id 8453 \
-	--account pkf \
-	--verifier blockscout \
-	--verifier-url https://base.blockscout.com/api/ \
-	--ffi \
-	--legacy \
-	--verify \
-	--via-ir \
-	-vvv \
-	--broadcast \
-	--slow
-
-# Add owner to all modules in Base
-addOwner: #make addOwner owner=0x1234 threshold=2
-	-forge script script/FactoryInteraction.s.sol:FactoryInteractionScript \
-	--rpc-url $(RPC_URL_BASE) \
-	--account pkf \
-	--sig "addSafeOwnerToAll(address,uint256)" $(owner) $(threshold) \
-	--chain-id 8453 \
-	--broadcast \
-	-vvvv
-
-# Get module for safe
-getModuleForSafe: #make getModuleForSafe safe=0x1234
-	-forge script script/FactoryInteraction.s.sol:FactoryInteractionScript \
-	--rpc-url $(RPC_URL_BASE) \
-	--account pkf \
-	--sig "getModuleForSafe(address)" $(safe) \
-	--chain-id 8453 \
-	--broadcast \
-	-vvvv
-
-# Get factory info
-getFactoryInfo: 
-	-forge script script/FactoryInteraction.s.sol:FactoryInteractionScript \
-	--rpc-url $(RPC_URL_BASE) \
-	--account pkf \
-	--sig "getFactoryInfo()" \
-	--chain-id 8453 \
-	--broadcast \
-	-vvvv
-
-# Gnosis
-deploy-factory-multi-gnosis: 
-	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
-	--rpc-url $(RPC_URL_GNOSIS) \
-	--account pkf \
-	--sig "run(string)" 'gnosis' \
-	--etherscan-api-key $(ETHERSCAN_API_KEY) \
-	--chain-id 100 \
-	--broadcast \
-	--legacy \
-	--verify \
-	-vvv
-
-# Gnosis with ownership transfer
-deploy-factory-gnosis-transfer: #make deploy-factory-gnosis-transfer owner=0x1234
-	@if [ -z "$(owner)" ]; then \
-		echo "Error: owner parameter is required. Usage: make deploy-factory-gnosis-transfer owner=0x..."; \
-		exit 1; \
-	fi
-	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
-	--rpc-url $(RPC_URL_GNOSIS) \
-	--account pkf \
-	--sig "runWithOwnerTransfer(string,address)" 'gnosis' $(owner) \
-	--etherscan-api-key $(ETHERSCAN_API_KEY) \
-	--chain-id 100 \
-	--broadcast \
-	--legacy \
-	--verify \
-	-vvv
-
-verify-factory-gnosis: 
-	-forge verify-contract \
-	--rpc-url $(RPC_URL_GNOSIS) \
-	[CONTRACT_ADDRESS] \
-	/home/felipenovaesrocha/Projects/1Hive/gardens-zodiac/src/SafeModuleManager.sol:SafeModuleManager \
-	--etherscan-api-key $(ETHERSCAN_API_KEY)
-
-# Base Sepolia
-deploy-factory-multi-basesep: 
-	-forge script script/DeployFactoryMultiChain.s.sol:DeployFactoryMultiChain \
-	--rpc-url $(RPC_URL_BASE_TESTNET) \
-	--account pkf \
-	--sig "run(string)" 'basesepolia' \
-	--etherscan-api-key $(BASESCAN_API_KEY) \
-	--chain-id 84532 \
-	--broadcast \
-	--legacy \
-	--verify \
-	-vvv
-
-
-# UUPS Deployment Commands
-
-# Deploy UUPS implementations and proxy locally
-deploy-uups-local:
-	-forge script script/DeployUUPS.s.sol:DeployUUPS \
-	--rpc-url http://127.0.0.1:8545 \
-	--private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
-	--broadcast \
-	-vvvv
-
-# Deploy UUPS on Base
-deploy-uups-base:
-	-forge script script/DeployUUPS.s.sol:DeployUUPS \
-	--rpc-url $(RPC_URL_BASE) \
-	--account pkf \
-	--chain-id 8453 \
-	--broadcast \
-	--legacy \
-	--verify \
-	--etherscan-api-key $(BASESCAN_API_KEY) \
-	-vvv
-
-# Deploy UUPS on Gnosis Chain
-deploy-uups-gnosis:
-	-forge script script/DeployUUPSMultiChain.s.sol:DeployUUPSMultiChain \
-	--rpc-url $(RPC_URL_GNOSIS) \
-	--account pkf \
-	--sig "run(string)" 'gnosis' \
-	--etherscan-api-key $(ETHERSCAN_API_KEY) \
-	--chain-id 100 \
-	--with-gas-price 5gwei \
-	--priority-gas-price 1gwei \
-	--broadcast \
-	--verify \
-	-vvv
-
-# Upgrade UUPS proxy (requires PROXY_ADDRESS env var)
-upgrade-uups:
-	@if [ -z "$$PROXY_ADDRESS" ]; then \
-		echo "Error: PROXY_ADDRESS environment variable is required"; \
-		exit 1; \
-	fi
-	-forge script script/UpgradeUUPS.s.sol:UpgradeUUPS \
-	--rpc-url $(RPC_URL_BASE) \
-	--account pkf \
-	--chain-id 8453 \
-	--broadcast \
-	-vvv
-
-# Upgrade module template (requires PROXY_ADDRESS env var)
-upgrade-module-template:
-	@if [ -z "$$PROXY_ADDRESS" ]; then \
-		echo "Error: PROXY_ADDRESS environment variable is required"; \
-		exit 1; \
-	fi
-	-forge script script/UpgradeUUPS.s.sol:UpgradeUUPS \
-	--rpc-url $(RPC_URL_BASE) \
-	--account pkf \
-	--sig "upgradeModuleTemplate()" \
-	--chain-id 8453 \
-	--broadcast \
-	-vvv
+# ===== REGISTRY & UUPS DEPLOYMENT COMMANDS =====
 
 # Deploy SyncGroupRegistry to Gnosis Chain
 deploy-registry-gnosis:
 	@echo "Deploying SyncGroupRegistry to Gnosis Chain..."
-	-forge script script/DeployRegistry.s.sol:DeployRegistry \
+	@forge script script/DeployUUPSMultiChain.s.sol:DeployUUPSMultiChain \
 	--rpc-url $(RPC_URL_GNOSIS) \
 	--account pkf \
+	--sig "deployRegistry(string)" 'gnosis' \
 	--chain-id 100 \
 	--with-gas-price 5gwei \
 	--priority-gas-price 1gwei \
 	--broadcast \
+	--legacy \
 	--verify \
 	--etherscan-api-key $(ETHERSCAN_API_KEY) \
 	-vvv
+	@echo ""
+	@echo "📝 Updating networks.json..."
+	@./scripts/update-deployment-addresses.sh gnosis registry
+	@echo ""
+	@echo "🔄 Syncing configs to subgraph..."
+	@pnpm sync-configs
+
+# ===== REGISTRY UPGRADE COMMANDS =====
+
+# Upgrade Registry proxy itself (Scenario 1)
+upgrade-registry-gnosis:
+	@echo "Upgrading SyncGroupRegistry on Gnosis Chain..."
+	@echo "Reading Registry address from script/config/networks.json"
+	@forge script script/UpgradeUUPS.s.sol:UpgradeUUPS \
+	--rpc-url $(RPC_URL_GNOSIS) \
+	--account pkf \
+	--sig "upgradeRegistry(string)" 'gnosis' \
+	--chain-id 100 \
+	--with-gas-price 5gwei \
+	--priority-gas-price 1gwei \
+	--legacy \
+	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY) \
+	-vvv
+	@echo ""
+	@echo "📝 Updating networks.json with new implementation..."
+	@./scripts/update-deployment-addresses.sh gnosis registry-impl
+	@echo ""
+	@echo "🔄 Syncing configs..."
+	@pnpm sync-configs
+
+# Update SafeModuleManager template in Registry (Scenario 2)
+update-registry-manager-template-gnosis:
+	@echo "Updating SafeModuleManager template in Registry on Gnosis Chain..."
+	@echo "Reading Registry address from script/config/networks.json"
+	@forge script script/UpgradeUUPS.s.sol:UpgradeUUPS \
+	--rpc-url $(RPC_URL_GNOSIS) \
+	--account pkf \
+	--sig "updateRegistryManagerTemplate(string)" 'gnosis' \
+	--chain-id 100 \
+	--with-gas-price 5gwei \
+	--priority-gas-price 1gwei \
+	--legacy \
+	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY) \
+	-vvv
+	@echo ""
+	@echo "📝 Updating networks.json with new Manager template..."
+	@./scripts/update-deployment-addresses.sh gnosis manager-impl
+	@echo ""
+	@echo "🔄 Syncing configs..."
+	@pnpm sync-configs
+
+# Update ManagedSafeModule template in Registry (Scenario 4)
+update-registry-module-template-gnosis:
+	@echo "Updating ManagedSafeModule template in Registry on Gnosis Chain..."
+	@echo "Reading Registry address from script/config/networks.json"
+	@forge script script/UpgradeUUPS.s.sol:UpgradeUUPS \
+	--rpc-url $(RPC_URL_GNOSIS) \
+	--account pkf \
+	--sig "updateRegistryModuleTemplate(string)" 'gnosis' \
+	--chain-id 100 \
+	--with-gas-price 5gwei \
+	--priority-gas-price 1gwei \
+	--legacy \
+	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY) \
+	-vvv
+	@echo ""
+	@echo "📝 Updating networks.json with new Module template..."
+	@./scripts/update-deployment-addresses.sh gnosis module-impl
+	@echo ""
+	@echo "🔄 Syncing configs..."
+	@pnpm sync-configs
 
 # Check contract sizes to ensure they fit within limits
 check-sizes:
 	forge build --sizes
-
-# Rename all instances of this repo with the new repo name
-rename :; chmod +x ./scripts/* && ./scripts/rename.sh

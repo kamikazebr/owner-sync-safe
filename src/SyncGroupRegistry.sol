@@ -50,6 +50,12 @@ contract SyncGroupRegistry is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
     error NotGroupOwner();
     error ManagerAlreadyRegistered();
 
+    // Modifiers
+    modifier onlyGroupOwner(uint256 groupId) {
+        if (msg.sender != groups[groupId].owner) revert NotGroupOwner();
+        _;
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -119,10 +125,9 @@ contract SyncGroupRegistry is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
      * @param groupId Group ID
      * @param newName New name
      */
-    function updateGroupName(uint256 groupId, string memory newName) external {
+    function updateGroupName(uint256 groupId, string memory newName) external onlyGroupOwner(groupId) {
         SyncGroup storage group = groups[groupId];
         if (!group.active) revert GroupNotActive();
-        if (msg.sender != group.owner) revert NotGroupOwner();
         if (bytes(newName).length == 0) revert InvalidName();
 
         group.name = newName;
@@ -133,10 +138,9 @@ contract SyncGroupRegistry is Initializable, UUPSUpgradeable, Ownable2StepUpgrad
      * @dev Deactivate a group (doesn't delete, just marks inactive)
      * @param groupId Group ID
      */
-    function deactivateGroup(uint256 groupId) external {
+    function deactivateGroup(uint256 groupId) external onlyGroupOwner(groupId) {
         SyncGroup storage group = groups[groupId];
         if (!group.active) revert GroupNotActive();
-        if (msg.sender != group.owner) revert NotGroupOwner();
 
         group.active = false;
         emit GroupDeactivated(groupId);
