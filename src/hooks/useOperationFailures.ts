@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Address } from 'viem';
-import { subgraphClient, GET_OPERATION_FAILURES, GET_RECENT_FAILURES_FOR_TX } from '@/lib/subgraph-client';
+import { getSubgraphClient, GET_OPERATION_FAILURES, GET_RECENT_FAILURES_FOR_TX } from '@/lib/subgraph-client';
 
 interface ModuleOperationFailure {
   id: string;
@@ -20,13 +20,14 @@ interface OperationFailuresResponse {
   moduleOperationFailures: ModuleOperationFailure[];
 }
 
-export function useOperationFailures(managerAddress?: Address) {
+export function useOperationFailures(managerAddress?: Address, chainId?: number) {
   return useQuery({
-    queryKey: ['operationFailures', managerAddress],
+    queryKey: ['operationFailures', managerAddress, chainId],
     queryFn: async () => {
       if (!managerAddress) return [];
 
-      const data = await subgraphClient.request<OperationFailuresResponse>(
+      const client = getSubgraphClient(chainId || 100);
+      const data = await client.request<OperationFailuresResponse>(
         GET_OPERATION_FAILURES,
         { managerAddress: managerAddress.toLowerCase() }
       );
@@ -38,13 +39,14 @@ export function useOperationFailures(managerAddress?: Address) {
   });
 }
 
-export function useRecentFailuresForTx(transactionHash?: string) {
+export function useRecentFailuresForTx(transactionHash?: string, chainId?: number) {
   return useQuery({
-    queryKey: ['recentFailures', transactionHash],
+    queryKey: ['recentFailures', transactionHash, chainId],
     queryFn: async () => {
       if (!transactionHash) return [];
 
-      const data = await subgraphClient.request<OperationFailuresResponse>(
+      const client = getSubgraphClient(chainId || 100);
+      const data = await client.request<OperationFailuresResponse>(
         GET_RECENT_FAILURES_FOR_TX,
         { transactionHash: transactionHash.toLowerCase() }
       );

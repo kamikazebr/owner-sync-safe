@@ -16,6 +16,7 @@ import { ActiveGroupsBanner } from '@/components/ActiveGroupsBanner';
 import { CompactActiveGroupBanner } from '@/components/CompactActiveGroupBanner';
 import { Home, Users, Shield } from 'lucide-react';
 import { SafeAppRedirectBanner } from '@/components/SafeAppRedirectBanner';
+import { SupportedNetworks } from '@/components/SupportedNetworks';
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
@@ -157,39 +158,49 @@ function HomeClient() {
             )}
 
             {isConnected ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {/* Quick Actions */}
-                <button
-                  onClick={() => setActiveView('groups')}
-                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-md transition-shadow text-left"
-                >
-                  <Users className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-3" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">My Groups</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    View and manage your sync groups
-                  </p>
-                </button>
+              <>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {/* Quick Actions */}
+                  <button
+                    onClick={() => setActiveView('groups')}
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-md transition-shadow text-left"
+                  >
+                    <Users className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-3" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">My Groups</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      View and manage your sync groups
+                    </p>
+                  </button>
 
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 hover:shadow-md transition-shadow text-left"
-                >
-                  <Home className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-3" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">New Group</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Create a new sync group
-                  </p>
-                </button>
-              </div>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 hover:shadow-md transition-shadow text-left"
+                  >
+                    <Home className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-3" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">New Group</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Create a new sync group
+                    </p>
+                  </button>
+                </div>
+
+                {/* Supported Networks */}
+                <SupportedNetworks />
+              </>
             ) : (
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-12 text-center">
-                <Users className="h-16 w-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  Connect Your Wallet
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Connect your wallet to start managing sync groups
-                </p>
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-12 text-center">
+                  <Users className="h-16 w-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                    Connect Your Wallet
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Connect your wallet to start managing sync groups
+                  </p>
+                </div>
+
+                {/* Show supported networks even when not connected */}
+                <SupportedNetworks />
               </div>
             )}
           </div>

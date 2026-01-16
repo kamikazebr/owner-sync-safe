@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePublicClient } from 'wagmi';
 import { Address } from 'viem';
 import { SafeABI } from '@/lib/abis';
-import { subgraphClient, GET_GROUP_SAFES } from '@/lib/subgraph-client';
+import { getSubgraphClient, GET_GROUP_SAFES } from '@/lib/subgraph-client';
 
 export interface GroupSafe {
   safeAddress: Address;
@@ -32,7 +32,8 @@ export function useGroupSafes(managerAddress?: Address, chainId?: number) {
       setIsLoading(true);
       try {
         // Query subgraph for all modules managed by this manager
-        const response = await subgraphClient.request<{
+        const client = getSubgraphClient(chainId || 100);
+        const response = await client.request<{
           managedSafeModules: Array<{
             id: string;
             safe: string;

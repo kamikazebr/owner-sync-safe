@@ -5,7 +5,7 @@ import { Address } from 'viem';
 import { usePublicClient } from 'wagmi';
 import { useSafeApps } from './useSafeApps';
 import { SafeABI } from '@/lib/abis';
-import { subgraphClient, GET_PENDING_SETUPS } from '@/lib/subgraph-client';
+import { getSubgraphClient, GET_PENDING_SETUPS } from '@/lib/subgraph-client';
 
 export interface PendingSetupInfo {
   groupId: bigint;
@@ -47,7 +47,8 @@ export function usePendingSetup(chainId?: number) {
         setIsLoading(true);
 
         // Query subgraph for modules that are created but not configured
-        const response = await subgraphClient.request<{
+        const client = getSubgraphClient(chainId || 100);
+        const response = await client.request<{
           managedSafeModules: Array<{
             id: string;
             manager: {

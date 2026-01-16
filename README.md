@@ -55,21 +55,35 @@ pnpm build
 
 ### Development Commands
 
+This project uses [Task](https://taskfile.dev) for build automation. See [docs/TASKFILE.md](docs/TASKFILE.md) for complete documentation.
+
 ```bash
 # Build contracts
-forge build --sizes
+task build
 
 # Run tests
-forge test
+task test
 
-# Deploy UUPS system
-forge script script/DeployUUPS.s.sol --broadcast
+# Check contract sizes
+task check-sizes
+
+# Deploy Registry to Gnosis Chain
+task deploy:registry:gnosis
+
+# Deploy to other networks
+task deploy:registry:base        # Base
+task deploy:registry:arbitrum    # Arbitrum
+task deploy:registry:optimism    # Optimism
+task deploy:registry:polygon     # Polygon
 
 # Upgrade existing system
-forge script script/UpgradeUUPS.s.sol --broadcast
+task upgrade:registry:gnosis
+
+# List all available tasks
+task --list-all
 ```
 
-See `Makefile` for additional commands.
+See `Taskfile.yml` and [docs/TASKFILE.md](docs/TASKFILE.md) for all available commands.
 
 ## Safe Apps Integration
 

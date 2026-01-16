@@ -1,0 +1,498 @@
+version: '3'
+
+# Automatically load environment variables from .env file
+dotenv: ['.env']
+
+# Global variables
+vars:
+  OPTIMIZER_RUNS: 1000000
+  GNOSIS_CHAIN_ID: 100
+  GNOSIS_GAS_PRICE: 5gwei
+  GNOSIS_PRIORITY_GAS: 1gwei
+  BASE_CHAIN_ID: 8453
+  ARBITRUM_CHAIN_ID: 42161
+  OPTIMISM_CHAIN_ID: 10
+  POLYGON_CHAIN_ID: 137
+
+# ============================================================================
+# CORE DEVELOPMENT TASKS
+# ============================================================================
+
+tasks:
+  # Clean forge build artifacts
+  clean:
+    desc: Clean forge build artifacts
+    cmds:
+      - forge clean
+
+  # Build contracts with optimization
+  build:
+    desc: Build contracts with optimization (1M optimizer runs)
+    cmds:
+      - forge clean
+      - forge build --optimize --optimizer-runs {{.OPTIMIZER_RUNS}}
+
+  # Run all tests
+  test:
+    desc: Run all Forge tests with verbose output
+    cmds:
+      - forge clean
+      - forge test --optimize --optimizer-runs {{.OPTIMIZER_RUNS}} -vvv
+
+  # Run specific test file
+  "test:file":
+    desc: "Run specific test file (Usage: task test:file FILE=SafeModuleManagerTest.t.sol)"
+    cmds:
+      - forge test --match-path test/{{.FILE}} -vvv
+
+  # Run specific test function
+  "test:function":
+    desc: "Run specific test function (Usage: task test:function FUNC=testCreateModuleForSafe)"
+    cmds:
+      - forge test --match-test {{.FUNC}} -vvv
+
+  # Generate gas snapshots
+  snapshot:
+    desc: Generate gas usage snapshots
+    cmds:
+      - forge clean
+      - forge snapshot --optimize --optimizer-runs {{.OPTIMIZER_RUNS}}
+
+  # Check contract sizes
+  check-sizes:
+    desc: Check contract sizes (EIP-170 limit is 24,576 bytes)
+    cmds:
+      - forge build --sizes
+
+  # ============================================================================
+  # LIBRARY MANAGEMENT
+  # ============================================================================
+
+  # Install forge libraries
+  "libs:install":
+    desc: Install forge library dependencies
+    cmds:
+      - forge install --no-git dapphub/ds-test@9310e879db8ba3ea6d5c6489a579118fd264a3f5
+      - forge install --no-git foundry-rs/forge-std@564510058ab3db01577b772c275e081e678373f2
+      - forge install --no-git rari-capital/solmate@eaaccf88ac5290299884437e1aee098a96583d54
+      - forge install --no-git OpenZeppelin/openzeppelin-contracts@v4.6.0
+      - forge install --no-git contracts-upgradeable=OpenZeppelin/openzeppelin-contracts-upgradeable@v4.6.0
+      - forge install --no-git gnosis/safe-contracts@v1.3.0-libs.0 gnosis/zodiac@v1.0.10
+
+  # Fix OpenZeppelin directory structure
+  fix-zeppelin:
+    desc: Fix OpenZeppelin contracts-upgradeable directory structure
+    cmds:
+      - mv lib/contracts-upgradeable/contracts lib/openzeppelin-contracts/contracts-upgradeable
+      - rm -rf lib/contracts-upgradeable
+      - echo "✅ OpenZeppelin structure fixed"
+
+  # Complete installation (libs + fix)
+  install:
+    desc: Install all dependencies and fix structure
+    deps: [libs:install]
+    cmds:
+      - task: fix-zeppelin
+
+  # ============================================================================
+  # DEPLOYMENT TASKS - GNOSIS CHAIN
+  # ============================================================================
+
+  "deploy:registry:gnosis":
+    desc: Deploy SyncGroupRegistry to Gnosis Chain
+    deps: [test]
+    preconditions:
+      - test -f .env
+      - sh: test -n "{{.RPC_URL_GNOSIS}}"
+        msg: "RPC_URL_GNOSIS not set in .env"
+      - sh: test -n "{{.ETHERSCAN_API_KEY}}"
+        msg: "ETHERSCAN_API_KEY not set in .env"
+    cmds:
+      - echo "🚀 Deploying SyncGroupRegistry to Gnosis Chain..."
+      - |
+        forge script script/DeployUUPSMultiChain.s.sol:DeployUUPSMultiChain \
+          --rpc-url {{.RPC_URL_GNOSIS}} \
+          --account pkf \
+          --sig "deployRegistry(string)" 'gnosis' \
+          --chain-id {{.GNOSIS_CHAIN_ID}} \
+          --with-gas-price {{.GNOSIS_GAS_PRICE}} \
+          --priority-gas-price {{.GNOSIS_PRIORITY_GAS}} \
+          --broadcast \
+          --legacy \
+          --verify \
+          --etherscan-api-key {{.ETHERSCAN_API_KEY}} \
+          -vvv
+      - echo ""
+      - echo "📝 Updating networks.json..."
+      - ./scripts/update-deployment-addresses.sh gnosis registry
+      - echo ""
+      - echo "🔄 Syncing configs to subgraph..."
+      - pnpm sync-configs
+      - echo ""
+      - echo "✅ Deployment complete!"
+
+  # ============================================================================
+  # DEPLOYMENT TASKS - BASE
+  # ============================================================================
+
+  "deploy:registry:base":
+    desc: Deploy SyncGroupRegistry to Base
+    deps: [test]
+    preconditions:
+      - test -f .env
+      - sh: test -n "{{.RPC_URL_BASE}}"
+        msg: "RPC_URL_BASE not set in .env"
+      - sh: test -n "{{.BASESCAN_API_KEY}}"
+        msg: "BASESCAN_API_KEY not set in .env"
+    cmds:
+      - echo "🚀 Deploying SyncGroupRegistry to Base..."
+      - |
+        forge script script/DeployUUPSMultiChain.s.sol:DeployUUPSMultiChain \
+          --rpc-url {{.RPC_URL_BASE}} \
+          --account pkf \
+          --sig "deployRegistry(string)" 'base' \
+          --chain-id {{.BASE_CHAIN_ID}} \
+          --broadcast \
+          --verify \
+          --etherscan-api-key {{.BASESCAN_API_KEY}} \
+          -vvv
+      - echo ""
+      - echo "📝 Updating networks.json..."
+      - ./scripts/update-deployment-addresses.sh base registry
+      - echo ""
+      - echo "🔄 Syncing configs to subgraph..."
+      - pnpm sync-configs
+      - echo ""
+      - echo "✅ Deployment complete!"
+
+  # ============================================================================
+  # DEPLOYMENT TASKS - ARBITRUM
+  # ============================================================================
+
+  "deploy:registry:arbitrum":
+    desc: Deploy SyncGroupRegistry to Arbitrum One
+    deps: [test]
+    preconditions:
+      - test -f .env
+      - sh: test -n "{{.RPC_URL_ARBITRUM}}"
+        msg: "RPC_URL_ARBITRUM not set in .env"
+      - sh: test -n "{{.ARBISCAN_API_KEY}}"
+        msg: "ARBISCAN_API_KEY not set in .env"
+    cmds:
+      - echo "🚀 Deploying SyncGroupRegistry to Arbitrum One..."
+      - |
+        forge script script/DeployUUPSMultiChain.s.sol:DeployUUPSMultiChain \
+          --rpc-url {{.RPC_URL_ARBITRUM}} \
+          --account pkf \
+          --sig "deployRegistry(string)" 'arbitrum' \
+          --chain-id {{.ARBITRUM_CHAIN_ID}} \
+          --broadcast \
+          --verify \
+          --etherscan-api-key {{.ARBISCAN_API_KEY}} \
+          -vvv
+      - echo ""
+      - echo "📝 Updating networks.json..."
+      - ./scripts/update-deployment-addresses.sh arbitrum registry
+      - echo ""
+      - echo "🔄 Syncing configs to subgraph..."
+      - pnpm sync-configs
+      - echo ""
+      - echo "✅ Deployment complete!"
+
+  # ============================================================================
+  # DEPLOYMENT TASKS - OPTIMISM
+  # ============================================================================
+
+  "deploy:registry:optimism":
+    desc: Deploy SyncGroupRegistry to Optimism
+    deps: [test]
+    preconditions:
+      - test -f .env
+      - sh: test -n "{{.RPC_URL_OPTIMISM}}"
+        msg: "RPC_URL_OPTIMISM not set in .env"
+      - sh: test -n "{{.OPTIMISTIC_ETHERSCAN_API_KEY}}"
+        msg: "OPTIMISTIC_ETHERSCAN_API_KEY not set in .env"
+    cmds:
+      - echo "🚀 Deploying SyncGroupRegistry to Optimism..."
+      - |
+        forge script script/DeployUUPSMultiChain.s.sol:DeployUUPSMultiChain \
+          --rpc-url {{.RPC_URL_OPTIMISM}} \
+          --account pkf \
+          --sig "deployRegistry(string)" 'optimism' \
+          --chain-id {{.OPTIMISM_CHAIN_ID}} \
+          --broadcast \
+          --verify \
+          --etherscan-api-key {{.OPTIMISTIC_ETHERSCAN_API_KEY}} \
+          -vvv
+      - echo ""
+      - echo "📝 Updating networks.json..."
+      - ./scripts/update-deployment-addresses.sh optimism registry
+      - echo ""
+      - echo "🔄 Syncing configs to subgraph..."
+      - pnpm sync-configs
+      - echo ""
+      - echo "✅ Deployment complete!"
+
+  # ============================================================================
+  # DEPLOYMENT TASKS - POLYGON
+  # ============================================================================
+
+  "deploy:registry:polygon":
+    desc: Deploy SyncGroupRegistry to Polygon
+    deps: [test]
+    preconditions:
+      - test -f .env
+      - sh: test -n "{{.RPC_URL_POLYGON}}"
+        msg: "RPC_URL_POLYGON not set in .env"
+      - sh: test -n "{{.POLYGONSCAN_API_KEY}}"
+        msg: "POLYGONSCAN_API_KEY not set in .env"
+    cmds:
+      - echo "🚀 Deploying SyncGroupRegistry to Polygon..."
+      - |
+        forge script script/DeployUUPSMultiChain.s.sol:DeployUUPSMultiChain \
+          --rpc-url {{.RPC_URL_POLYGON}} \
+          --account pkf \
+          --sig "deployRegistry(string)" 'polygon' \
+          --chain-id {{.POLYGON_CHAIN_ID}} \
+          --broadcast \
+          --verify \
+          --etherscan-api-key {{.POLYGONSCAN_API_KEY}} \
+          -vvv
+      - echo ""
+      - echo "📝 Updating networks.json..."
+      - ./scripts/update-deployment-addresses.sh polygon registry
+      - echo ""
+      - echo "🔄 Syncing configs to subgraph..."
+      - pnpm sync-configs
+      - echo ""
+      - echo "✅ Deployment complete!"
+
+  # ============================================================================
+  # UPGRADE TASKS - GNOSIS CHAIN
+  # ============================================================================
+
+  "upgrade:registry:gnosis":
+    desc: Upgrade SyncGroupRegistry proxy on Gnosis Chain
+    preconditions:
+      - test -f .env
+      - sh: test -n "{{.RPC_URL_GNOSIS}}"
+        msg: "RPC_URL_GNOSIS not set in .env"
+    cmds:
+      - echo "⬆️  Upgrading SyncGroupRegistry on Gnosis Chain..."
+      - echo "📖 Reading Registry address from script/config/networks.json"
+      - |
+        forge script script/UpgradeUUPS.s.sol:UpgradeUUPS \
+          --rpc-url {{.RPC_URL_GNOSIS}} \
+          --account pkf \
+          --sig "upgradeRegistry(string)" 'gnosis' \
+          --chain-id {{.GNOSIS_CHAIN_ID}} \
+          --with-gas-price {{.GNOSIS_GAS_PRICE}} \
+          --priority-gas-price {{.GNOSIS_PRIORITY_GAS}} \
+          --legacy \
+          --broadcast \
+          --verify \
+          --etherscan-api-key {{.ETHERSCAN_API_KEY}} \
+          -vvv
+      - echo ""
+      - echo "📝 Updating networks.json with new implementation..."
+      - ./scripts/update-deployment-addresses.sh gnosis registry-impl
+      - echo ""
+      - echo "🔄 Syncing configs..."
+      - pnpm sync-configs
+      - echo ""
+      - echo "✅ Upgrade complete!"
+
+  "upgrade:manager-template:gnosis":
+    desc: Update SafeModuleManager template in Registry on Gnosis Chain
+    preconditions:
+      - test -f .env
+      - sh: test -n "{{.RPC_URL_GNOSIS}}"
+        msg: "RPC_URL_GNOSIS not set in .env"
+    cmds:
+      - echo "⬆️  Updating SafeModuleManager template in Registry on Gnosis Chain..."
+      - echo "📖 Reading Registry address from script/config/networks.json"
+      - |
+        forge script script/UpgradeUUPS.s.sol:UpgradeUUPS \
+          --rpc-url {{.RPC_URL_GNOSIS}} \
+          --account pkf \
+          --sig "updateRegistryManagerTemplate(string)" 'gnosis' \
+          --chain-id {{.GNOSIS_CHAIN_ID}} \
+          --with-gas-price {{.GNOSIS_GAS_PRICE}} \
+          --priority-gas-price {{.GNOSIS_PRIORITY_GAS}} \
+          --legacy \
+          --broadcast \
+          --verify \
+          --etherscan-api-key {{.ETHERSCAN_API_KEY}} \
+          -vvv
+      - echo ""
+      - echo "📝 Updating networks.json with new Manager template..."
+      - ./scripts/update-deployment-addresses.sh gnosis manager-impl
+      - echo ""
+      - echo "🔄 Syncing configs..."
+      - pnpm sync-configs
+      - echo ""
+      - echo "✅ Template update complete!"
+
+  "upgrade:module-template:gnosis":
+    desc: Update ManagedSafeModule template in Registry on Gnosis Chain
+    preconditions:
+      - test -f .env
+      - sh: test -n "{{.RPC_URL_GNOSIS}}"
+        msg: "RPC_URL_GNOSIS not set in .env"
+    cmds:
+      - echo "⬆️  Updating ManagedSafeModule template in Registry on Gnosis Chain..."
+      - echo "📖 Reading Registry address from script/config/networks.json"
+      - |
+        forge script script/UpgradeUUPS.s.sol:UpgradeUUPS \
+          --rpc-url {{.RPC_URL_GNOSIS}} \
+          --account pkf \
+          --sig "updateRegistryModuleTemplate(string)" 'gnosis' \
+          --chain-id {{.GNOSIS_CHAIN_ID}} \
+          --with-gas-price {{.GNOSIS_GAS_PRICE}} \
+          --priority-gas-price {{.GNOSIS_PRIORITY_GAS}} \
+          --legacy \
+          --broadcast \
+          --verify \
+          --etherscan-api-key {{.ETHERSCAN_API_KEY}} \
+          -vvv
+      - echo ""
+      - echo "📝 Updating networks.json with new Module template..."
+      - ./scripts/update-deployment-addresses.sh gnosis module-impl
+      - echo ""
+      - echo "🔄 Syncing configs..."
+      - pnpm sync-configs
+      - echo ""
+      - echo "✅ Template update complete!"
+
+  # ============================================================================
+  # FRONTEND DEVELOPMENT TASKS
+  # ============================================================================
+
+  dev:
+    desc: Run frontend development server (port 3000)
+    cmds:
+      - pnpm dev
+
+  "dev:contracts":
+    desc: Watch and rebuild contracts on changes
+    watch: true
+    sources:
+      - src/**/*.sol
+    cmds:
+      - task: build
+
+  type-check:
+    desc: Run TypeScript type checking
+    cmds:
+      - pnpm type-check
+
+  generate:
+    desc: Generate Wagmi types from contract ABIs
+    cmds:
+      - pnpm generate
+
+  sync-configs:
+    desc: Sync deployment configs to subgraph
+    cmds:
+      - pnpm sync-configs
+
+  update-deployments:
+    desc: Update frontend deployment addresses from networks.json
+    cmds:
+      - pnpm update-deployments
+
+  # ============================================================================
+  # SUBGRAPH TASKS
+  # ============================================================================
+
+  "subgraph:build":
+    desc: Build subgraph for deployment
+    dir: pkg/subgraph
+    cmds:
+      - pnpm build
+
+  "subgraph:deploy:gnosis":
+    desc: Deploy subgraph to Graph Studio (Gnosis)
+    dir: pkg/subgraph
+    cmds:
+      - pnpm deploy:gnosis
+
+  "subgraph:manifest:gnosis":
+    desc: Generate subgraph manifest for Gnosis
+    dir: pkg/subgraph
+    cmds:
+      - pnpm manifest:gnosis
+
+  # ============================================================================
+  # HELPER TASKS
+  # ============================================================================
+
+  setup:
+    desc: Complete project setup (install deps, build contracts & frontend)
+    cmds:
+      - echo "🔧 Setting up project..."
+      - task: install
+      - echo ""
+      - echo "🏗️  Building contracts..."
+      - task: build
+      - echo ""
+      - echo "📦 Installing frontend dependencies..."
+      - pnpm install
+      - echo ""
+      - echo "✅ Setup complete! Run 'task dev' to start development server"
+
+  doctor:
+    desc: Check development environment setup
+    cmds:
+      - echo "🔍 Checking development environment..."
+      - echo ""
+      - echo "📌 Forge version:"
+      - forge --version
+      - echo ""
+      - echo "📌 pnpm version:"
+      - pnpm --version
+      - echo ""
+      - echo "📌 Node version:"
+      - node --version
+      - echo ""
+      - echo "📌 Task version:"
+      - task --version
+      - echo ""
+      - echo "✅ All tools installed correctly!"
+
+  list:
+    desc: List all available tasks with descriptions
+    cmds:
+      - task --list-all
+
+  help:
+    desc: Show help and common commands
+    cmds:
+      - |
+        echo "Owner Sync Safe - Task Commands"
+        echo ""
+        echo "📚 Common Commands:"
+        echo "  task build           - Build contracts"
+        echo "  task test            - Run all tests"
+        echo "  task dev             - Run frontend dev server"
+        echo "  task setup           - Complete project setup"
+        echo "  task doctor          - Check environment"
+        echo "  task list            - List all tasks"
+        echo ""
+        echo "🚀 Deployment:"
+        echo "  task deploy:registry:gnosis    - Deploy to Gnosis Chain"
+        echo "  task deploy:registry:base      - Deploy to Base"
+        echo "  task deploy:registry:arbitrum  - Deploy to Arbitrum"
+        echo ""
+        echo "⬆️  Upgrades:"
+        echo "  task upgrade:registry:gnosis         - Upgrade Registry"
+        echo "  task upgrade:manager-template:gnosis - Update Manager template"
+        echo "  task upgrade:module-template:gnosis  - Update Module template"
+        echo ""
+        echo "📖 Full list: task --list-all"
+
+  # Default task when running just "task"
+  default:
+    desc: Show help
+    cmds:
+      - task: help

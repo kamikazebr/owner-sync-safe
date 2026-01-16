@@ -20,6 +20,28 @@
         "deploymentTx": "0x8882a6507c59cfcfe6ab76dc417923d773a0e8be91d12509ec59f016f4ce681d",
         "notes": "All contracts deployed in single transaction on 2025-10-18"
       }
+    },
+    {
+      "name": "base",
+      "chainId": 8453,
+      "testnet": false,
+      "ENVS": {
+        "SENDER": "0x2F9e113434aeBDd70bB99cB6505e1F726C578D6d"
+      },
+      "PROXIES": {
+        "SyncGroupRegistry": "0x0278b0aecb2772ade61a8a5d4ec1ee6b163c12a0"
+      },
+      "IMPLEMENTATIONS": {
+        "SyncGroupRegistry": "0x64ef8eccfae8d932db613889bb398578bd8169b3",
+        "SafeModuleManager": "0x5b06966f52ccf21d77cfb9009cdb896139249079",
+        "ManagedSafeModule": "0xb8710ab0ad28e2114f8a4cdd6062ce200a587a30"
+      },
+      "METADATA": {
+        "deploymentBlock": 40833012,
+        "deploymentTx": "0x3a076e8799750b7ad027ee660e085b671383aef63c64ee2fd9804411f99a8021",
+        "notes": "Deployed to Base on 2026-01-15",
+        "verified": true
+      }
     }
   ]
 }

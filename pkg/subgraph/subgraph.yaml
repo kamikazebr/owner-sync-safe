@@ -7,11 +7,11 @@ dataSources:
   # SyncGroupRegistry - Main registry contract
   - kind: ethereum/contract
     name: SyncGroupRegistry
-    network: gnosis
+    network: base
     source:
-      address: "0x1d9aafd517d85450bD85169eF291298a016da202"
+      address: "0x0278b0aecb2772ade61a8a5d4ec1ee6b163c12a0"
       abi: SyncGroupRegistry
-      startBlock: 42680229
+      startBlock: 40833012
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -42,7 +42,7 @@ templates:
   # SafeModuleManager template - One per group
   - kind: ethereum/contract
     name: SafeModuleManager
-    network: gnosis
+    network: base
     source:
       abi: SafeModuleManager
     mapping:
@@ -78,7 +78,7 @@ templates:
   # ManagedSafeModule template - One per module created
   - kind: ethereum/contract
     name: ManagedSafeModule
-    network: gnosis
+    network: base
     source:
       abi: ManagedSafeModule
     mapping:
@@ -120,7 +120,7 @@ templates:
   # Safe template - Track individual Safe contracts for module enablement
   - kind: ethereum/contract
     name: Safe
-    network: gnosis
+    network: base
     source:
       abi: Safe
     mapping:

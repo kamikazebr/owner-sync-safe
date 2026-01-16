@@ -1,10 +1,27 @@
 import { GraphQLClient } from 'graphql-request';
 
-// Subgraph endpoint - using /version/latest to always get the latest deployed version
-const SUBGRAPH_URL = 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-gnosis/version/latest';
+// Subgraph endpoints per network - using /version/latest to always get the latest deployed version
+const SUBGRAPH_URLS: Record<number, string> = {
+  // Gnosis Chain
+  100: 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-gnosis/version/latest',
+  // Base
+  8453: 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-base/version/latest',
+};
 
-// Create GraphQL client
-export const subgraphClient = new GraphQLClient(SUBGRAPH_URL);
+/**
+ * Get GraphQL client for a specific chain
+ */
+export function getSubgraphClient(chainId: number): GraphQLClient {
+  const url = SUBGRAPH_URLS[chainId];
+  if (!url) {
+    console.warn(`No subgraph configured for chain ${chainId}, falling back to Gnosis`);
+    return new GraphQLClient(SUBGRAPH_URLS[100]);
+  }
+  return new GraphQLClient(url);
+}
+
+// Default client for Gnosis Chain (backwards compatibility)
+export const subgraphClient = getSubgraphClient(100);
 
 // GraphQL queries
 export const GET_GROUP_SAFES = `

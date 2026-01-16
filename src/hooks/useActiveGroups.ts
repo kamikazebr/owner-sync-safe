@@ -5,7 +5,7 @@ import { Address } from 'viem';
 import { usePublicClient } from 'wagmi';
 import { useSafeApps } from './useSafeApps';
 import { SafeABI } from '@/lib/abis';
-import { subgraphClient, GET_ACTIVE_GROUPS } from '@/lib/subgraph-client';
+import { getSubgraphClient, GET_ACTIVE_GROUPS } from '@/lib/subgraph-client';
 
 export interface ActiveGroupInfo {
   groupId: bigint;
@@ -45,7 +45,8 @@ export function useActiveGroups(chainId?: number) {
         setIsLoading(true);
 
         // Query subgraph for all modules for this Safe
-        const response = await subgraphClient.request<{
+        const client = getSubgraphClient(chainId || 100);
+        const response = await client.request<{
           managedSafeModules: Array<{
             id: string;
             manager: {

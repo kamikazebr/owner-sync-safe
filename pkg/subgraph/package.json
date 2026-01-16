@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "build": "pnpm manifest:gnosis && graph codegen && graph build",
+    "build:base": "pnpm manifest:base && graph codegen && graph build",
     "manifest:gnosis": "node ./src/scripts/mustache.js gnosis",
+    "manifest:base": "node ./src/scripts/mustache.js base",
     "codegen": "graph codegen",
     "deploy:gnosis": "graph deploy --studio owner-sync-safe-gnosis --version-label v0.1.1",
+    "deploy:base": "graph deploy --studio owner-sync-safe-base --version-label v0.1.1",
     "create-local": "graph create --node http://localhost:8020/ owner-sync-safe",
     "deploy:local": "pnpm manifest:gnosis && graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 owner-sync-safe"
   },

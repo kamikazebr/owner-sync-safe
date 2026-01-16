@@ -1,0 +1,8 @@
+{
+  "network": "base",
+  "chainId": 8453,
+  "SyncGroupRegistry": {
+    "address": "0x0278b0aecb2772ade61a8a5d4ec1ee6b163c12a0",
+    "startBlock": 40833012
+  }
+}

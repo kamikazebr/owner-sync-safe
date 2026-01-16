@@ -1,3 +1,21 @@
+# ============================================================================
+# ⚠️  DEPRECATION NOTICE
+# ============================================================================
+# This Makefile is DEPRECATED and maintained only for backwards compatibility.
+#
+# Please use Task instead:
+#   - Install: https://taskfile.dev/installation/
+#   - Docs: See docs/TASKFILE.md
+#   - List commands: task --list-all
+#
+# Migration guide:
+#   make build              -> task build
+#   make test               -> task test
+#   make deploy-registry-*  -> task deploy:registry:*
+#   make snapshot           -> task snapshot
+#
+# ============================================================================
+
 # include .env file and export its env vars
 # (-include to ignore error if it does not exist)
 -include .env

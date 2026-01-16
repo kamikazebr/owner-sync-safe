@@ -1,14 +1,178 @@
-- use Errors instead require in Solidity code
+# CLAUDE.md
 
-# ⚠️ CRITICAL FEATURES - DO NOT REMOVE
-**IMPORTANT**: See `docs/FEATURES.md` for complete documentation of critical features that must be preserved.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Required Frontend Features
+## Project Overview
+
+Owner Sync Safe is a full-stack dApp for managing synchronized ownership across multiple Gnosis Safe wallets using upgradeable smart contracts (Solidity/Foundry), a Next.js frontend, and a Graph Protocol subgraph for indexing.
+
+## Tech Stack
+
+- **Smart Contracts**: Solidity ^0.8.6 with Foundry 1.3.2-nightly (8cd97db)
+- **Frontend**: Next.js 14.2 + React 18 + TypeScript 5.5 + Tailwind CSS 3.4
+- **Web3**: Wagmi 2.12 + Viem 2.21 + RainbowKit 2.1
+- **Safe Integration**: @safe-global/safe-apps-sdk 9.1.0
+- **Indexing**: The Graph Protocol (subgraph 0.69.2)
+- **Package Manager**: pnpm 9.7.0 (enforced)
+- **Node**: 20.x
+
+## Common Commands
+
+This project uses [Task](https://taskfile.dev) for build automation. See [docs/TASKFILE.md](docs/TASKFILE.md) for complete documentation.
+
+### Smart Contracts
+
+```bash
+# Build with optimization
+task build
+
+# Run all tests (verbose)
+task test
+
+# Run specific test file
+task test:file FILE=SafeModuleManagerTest.t.sol
+
+# Run specific test function
+task test:function FUNC=testCreateModuleForSafe
+
+# Generate gas snapshots
+task snapshot
+
+# Check contract sizes (24,576 byte limit)
+task check-sizes
+
+# Deploy Registry to Gnosis Chain
+task deploy:registry:gnosis
+
+# Deploy to other networks
+task deploy:registry:base        # Base
+task deploy:registry:arbitrum    # Arbitrum One
+task deploy:registry:optimism    # Optimism
+task deploy:registry:polygon     # Polygon
+
+# Upgrade Registry (5 scenarios - see docs/UPGRADE_PROCESS.md)
+task upgrade:registry:gnosis
+task upgrade:manager-template:gnosis
+task upgrade:module-template:gnosis
+
+# List all available tasks
+task --list-all
+
+# Check environment setup
+task doctor
+
+# Complete project setup
+task setup
+```
+
+**Important**: Always run `task test` before deploying. Deployment requires password for account `pkf`, so leave the command for the user to execute.
+
+### Frontend
+
+```bash
+# Development server (runs on 0.0.0.0:3000)
+pnpm dev
+
+# Type checking
+pnpm type-check
+
+# Build for production
+pnpm build
+
+# Generate Wagmi types from ABIs
+pnpm generate
+
+# Sync deployment configs to subgraph
+pnpm sync-configs
+
+# Update deployment addresses from networks.json
+pnpm update-deployments
+```
+
+**Important**: Always check server is up after modifications (run in dev mode and check logs).
+
+### Subgraph
+
+```bash
+# Generate manifest and build
+pnpm build
+
+# Deploy to Graph Studio (Gnosis)
+pnpm deploy:gnosis
+
+# Generate manifest from Mustache template
+pnpm manifest:gnosis
+```
+
+## Architecture
+
+### Three-Tier UUPS Proxy System
+
+All core contracts use OpenZeppelin's UUPS upgradeable pattern:
+
+```
+Deployer (Registry Owner)
+  └─> SyncGroupRegistry (UUPS Proxy)
+       ├─ Stores Manager + Module templates
+       └─> SafeModuleManager (UUPS Proxy, one per group)
+            ├─ Owner: Governance Safe
+            └─> ManagedSafeModule (UUPS Proxy, one per Safe)
+                 └─ Owner: Individual Safe
+```
+
+**Layer 1: SyncGroupRegistry** (`src/SyncGroupRegistry.sol`)
+- Main registry that creates and manages sync groups
+- Deployed: `0xa74c4551f0b32e0754dfecff5dc0239f23cc7844` (Gnosis Chain)
+- Owner: `0x2F9e113434aeBDd70bB99cB6505e1F726C578D6d`
+- Stores implementation templates for Manager and Module
+- Creates isolated groups with their own governance
+
+**Layer 2: SafeModuleManager** (`src/SafeModuleManager.sol`)
+- One instance per sync group (created by Registry)
+- Owner: Governance Safe specified during group creation
+- Creates ManagedSafeModule proxies for Safes in group
+- Executes cross-Safe batch operations (owner sync)
+
+**Layer 3: ManagedSafeModule** (`src/ManagedSafeModule.sol`)
+- One instance per Safe in a group (created by Manager)
+- Owner: The Safe itself
+- Must be enabled on Safe via Safe's interface
+- Handles individual Safe owner operations and auto-sync
+
+### Ownership & Control
+
+- **Registry Level**: Deployer owns Registry, can upgrade Registry and update templates
+- **Group Level**: Governance Safe owns Manager, can execute cross-module operations
+- **Safe Level**: Safe owns its Module, controls individual upgrades and operations
+
+### Module Enablement
+
+- Each ManagedSafeModule must be individually enabled on its respective Safe
+- Enablement tracked via Safe's `EnabledModule` event (indexed by subgraph)
+- Module is functional only after Safe enables it
+
+### Upgrade Scenarios (5 Levels)
+
+See detailed documentation in `docs/UPGRADE_PROCESS.md` and `docs/SUBGRAPH_UPGRADES.md`.
+
+1. **Registry Upgrade**: `Registry.upgradeTo()` - Affects Registry only, future groups
+2. **Manager Template Update**: `Registry.updateManagerImplementation()` - Future groups only
+3. **Manager Upgrade**: `Manager.upgradeTo()` - Specific group, requires governance Safe
+4. **Module Template Update**: `Manager.updateModuleTemplate()` - Future Safes in group
+5. **Module Upgrade**: `Module.upgradeTo()` - Individual Safe, requires Safe multisig
+
+## Frontend Architecture
+
+### Critical Features (MANDATORY)
+
+**See `docs/FEATURES.md` for complete documentation of features that must be preserved.**
+
 1. **Safe App Integration** (MANDATORY)
    - Hook: `src/hooks/useSafeApps.ts` - Must be imported and used in main page
    - Must detect Safe iframe context and display Safe-specific UI
    - Must retrieve Safe address, owners, and threshold
    - Dependencies: `@safe-global/safe-apps-sdk` must remain in package.json
+   - Test: Load at https://app.safe.global as custom app
 
 2. **Module Management** (CORE)
    - Hook: `src/hooks/useModuleManager.ts`
@@ -18,93 +182,98 @@
    - Contract: `SyncGroupRegistry.sol`
    - Hook: `src/hooks/useSyncGroupRegistry.ts`
 
-## Refactoring Rules
+4. **Wallet Connectivity** (MANDATORY)
+   - Providers: `src/app/providers.tsx`
+   - WagmiProvider + RainbowKitProvider setup
+
+### Refactoring Rules
+
 - ✅ ALWAYS verify Safe App integration after UI refactors
 - ✅ ALWAYS ensure `useSafeApps` is used in main page component
 - ✅ NEVER remove hooks without checking `docs/FEATURES.md`
-- ✅ Test in Safe iframe after major changes: Load at https://app.safe.global as custom app
+- ✅ Test in Safe iframe after major changes
 
-# Contract Size Management
-- Ethereum contract size limit: 24,576 bytes (EIP-170)
-- Monitor contract sizes with `forge build --sizes`
-- When contracts exceed limit, prioritize core functionality over convenience features
-- Manager contracts should focus on creation/management, avoid complex cross-module operations
-- Remove manager-as-module patterns if they cause size bloat
-- Use named imports `{A, B}` instead of wildcard imports to reduce compilation warnings
+### Project Structure
 
-# Contract Architecture Best Practices
-- Keep managers simple and focused on their primary responsibility
-- Separate complex network management into dedicated contracts if needed
-- Avoid inheritance from heavy base contracts (like Module) unless essential
-- Remove unused functions like batch operations, version management if not critical
-- Test core functionality after optimization to ensure nothing essential was broken
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── page.tsx             # Main app component (must import useSafeApps)
+│   ├── layout.tsx           # Root layout
+│   ├── providers.tsx        # Wagmi + RainbowKit config
+│   └── globals.css
+├── components/             # React components (17 total)
+│   ├── ModuleManager.tsx
+│   ├── GroupDashboard.tsx
+│   └── ...
+├── hooks/                  # Custom React hooks (17 total)
+│   ├── useSafeApps.ts       # Safe App detection (CRITICAL)
+│   ├── useModuleManager.ts  # Contract interactions
+│   ├── useSyncGroupRegistry.ts
+│   └── ...
+├── lib/                    # Utils & configs
+│   ├── wagmi.ts             # Wagmi config
+│   ├── network-config.ts    # Chain configs
+│   ├── subgraph-client.ts   # GraphQL client
+│   └── deployments.ts       # Contract addresses
+└── interfaces/             # TypeScript types
 
-# Current Architecture
+src/ (contracts)
+├── SyncGroupRegistry.sol       # Layer 1: Registry
+├── SafeModuleManager.sol       # Layer 2: Group Manager
+├── ManagedSafeModule.sol       # Layer 3: Safe Module
+└── errors/SafeModuleErrors.sol
 
-## Registry-Based Multi-Group System
-- **SyncGroupRegistry** (UUPS Proxy): Main registry contract that creates and manages sync groups
-  - Deployed at: `0xa74c4551f0b32e0754dfecff5dc0239f23cc7844` (Gnosis Chain)
-  - Owner: `0x2F9e113434aeBDd70bB99cB6505e1F726C578D6d` (Deployer)
-  - Stores implementation templates for SafeModuleManager and ManagedSafeModule
-  - Creates isolated groups with their own governance
+test/                       # Foundry tests
+├── SafeModuleManager*.t.sol
+├── ManagedSafeModule*.t.sol
+└── helpers/
 
-- **SafeModuleManager** (UUPS Proxy per group): One instance per sync group
-  - Created by Registry when `createGroup()` is called
-  - Owner: Governance Safe specified during group creation
-  - Creates ManagedSafeModule instances for Safes in the group
-  - Executes cross-module operations across all Safes in the group
+pkg/subgraph/
+├── src/schema.graphql      # GraphQL schema
+├── src/mappings/           # Event handlers
+└── src/templates/          # Dynamic contract templates
+```
 
-- **ManagedSafeModule** (UUPS Proxy per Safe): One instance per Safe in a group
-  - Created by SafeModuleManager when Safe joins group
-  - Owner: The Safe itself
-  - Each Safe controls its own module operations and upgrades
-  - Must be enabled on the Safe via Safe's interface
+### Environment Variables
 
-## Ownership Model
-- **Registry Level**: Deployer owns Registry, can upgrade Registry and update templates
-- **Group Level**: Governance Safe owns Manager, can execute cross-module operations
-- **Safe Level**: Safe owns its Module, controls individual upgrades and operations
+- `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` - WalletConnect project ID (required)
+- `NEXT_PUBLIC_ALCHEMY_GNOSIS_URL` - Optional Alchemy RPC for Gnosis Chain
 
-## Module Enablement
-- Each ManagedSafeModule must be individually enabled on its respective Safe
-- Enablement tracked via Safe's `EnabledModule` event (indexed by subgraph)
-- Module is functional only after Safe enables it
+## Solidity Best Practices
 
-## Upgrade Process
-See detailed documentation in:
-- **Contract Upgrades**: `docs/UPGRADE_PROCESS.md`
-  - 5 upgrade scenarios explained
-  - Step-by-step procedures with Makefile commands
-  - Security checklist and best practices
-  - Version history tracking
+- Use custom errors instead of `require()` statements (gas efficient)
+- All errors defined in `src/errors/SafeModuleErrors.sol`
+- Use named imports `{A, B}` instead of wildcard imports
+- Monitor contract sizes with `forge build --sizes` (24,576 byte limit)
+- Keep managers simple and focused on primary responsibility
+- Test core functionality after optimization
 
-- **Subgraph Upgrades**: `docs/SUBGRAPH_UPGRADES.md`
-  - Event compatibility matrix
-  - Impact analysis for each upgrade scenario
-  - Testing procedures
-  - Deployment commands
+## Foundry Version Management
 
-### Quick Reference: Upgrade Levels
-1. **Registry Upgrade**: `Registry.upgradeTo()` - Affects Registry only, future groups
-2. **Manager Template Update**: `Registry.updateManagerImplementation()` - Future groups only
-3. **Manager Upgrade**: `Manager.upgradeTo()` - Specific group, requires governance Safe
-4. **Module Template Update**: `Manager.updateModuleTemplate()` - Future Safes in group
-5. **Module Upgrade**: `Module.upgradeTo()` - Individual Safe, requires Safe multisig
-
-# Foundry Version Management
-- Current: 1.3.2-nightly (8cd97db, Sept 3, 2025)  
+- Current: 1.3.2-nightly (8cd97db, Sept 3, 2025)
 - Previous: 1.3.0-nightly (cb8f3bf, July 23, 2025)
-- Rollback command: `foundryup -C cb8f3bf2c4047f17310b84a685fcc12b61c98891`
-- Upgrade command: `foundryup -C 8cd97db7281d1bf64617699359596f553bbf88c4`
-- to deploy use makefile example, also account require password, so let command to the user run.
-- always run forge test before suggest deploy
-- always check server is up after some modifications, run it in dev mode and also check logs after some changes
+- Rollback: `foundryup -C cb8f3bf2c4047f17310b84a685fcc12b61c98891`
+- Upgrade: `foundryup -C 8cd97db7281d1bf64617699359596f553bbf88c4`
 
-# Vercel Deployment
-- **pnpm version conflicts**: Vercel's default pnpm (6.35.1) is too old for modern projects (need >=8.0.0)
-- **Solution**: Use `npx pnpm@9.7.0` in `vercel.json` to bypass version conflicts
-- **Never use** `engines.pnpm` restriction - it blocks deployment when Vercel's old pnpm tries to read package.json
-- **Node.js version**: Use specific version like `"node": "20.x"` to prevent auto-upgrades (avoid `>=18.0.0`)
+## Deployment Process
+
+1. **Test First**: `task test`
+2. **Check Sizes**: `task check-sizes`
+3. **Deploy**: `task deploy:registry:gnosis` (requires password, let user run)
+   - Or other networks: `task deploy:registry:base`, `task deploy:registry:arbitrum`, etc.
+4. **Update Configs**: Automatically updates `script/config/networks.json`
+5. **Sync Subgraph**: Automatically runs `pnpm sync-configs`
+6. **Update Frontend**: Automatically runs `pnpm update-deployments`
+
+**Note**: Task automatically runs tests before deployment (configured as dependency).
+
+## Vercel Deployment
+
+- **pnpm version conflicts**: Vercel's default pnpm (6.35.1) is too old
+- **Solution**: Use `npx pnpm@9.7.0` in `vercel.json`
+- **Never use** `engines.pnpm` restriction in package.json
+- **Node.js version**: Use `"node": "20.x"` (specific, not `>=18.0.0`)
 - **vercel.json config**:
   ```json
   {
@@ -112,14 +281,10 @@ See detailed documentation in:
     "buildCommand": "npx pnpm@9.7.0 build"
   }
   ```
-- **Vercel CLI commands**:
-  - `vercel ls --yes` - List deployments
-  - `vercel inspect <url>` - View deployment details
-  - `vercel logs <url>` - View runtime logs (not build logs)
 
-# Known Security Issues
+## Known Security Issues
 
-## 🚨 HIGH PRIORITY: Silent Module Disable Failure
+### 🚨 HIGH PRIORITY: Silent Module Disable Failure
 
 **Location**: `src/SafeModuleManager.sol:433-440` (`_disableModuleOnSafe` function)
 
@@ -162,5 +327,126 @@ function _disableModuleOnSafe(address safe, address module) internal {
 - Group switching functionality
 
 **Priority**: HIGH - Fix before production deployment
-- only commit manifest.json if i ask for it
-- dont commit that markdowns used to gg24 and others form submissions
+
+## Subgraph
+
+### Purpose
+
+Indexes smart contract events for efficient querying of:
+- Group creation and updates
+- Module deployment and activation
+- Owner changes and sync events
+- Cross-module operations
+- Operation failures
+
+### Entity Hierarchy
+
+```
+SyncGroupRegistry (root)
+  └── SyncGroup
+       ├── SafeModuleManager
+       ├── GroupSafe (Safe membership)
+       └── ManagedSafeModule
+            ├── ModuleOwner (current owners)
+            ├── OwnerChange (change history)
+            ├── ThresholdChange
+            └── OwnerSyncEvent
+```
+
+### When Schema or Events Change
+
+1. Check event compatibility: `docs/SUBGRAPH_UPGRADES.md`
+2. Update schema: `pkg/subgraph/src/schema.graphql`
+3. Update mappings: `pkg/subgraph/src/mappings/`
+4. Rebuild: `pnpm build` (in pkg/subgraph)
+5. Deploy: `pnpm deploy:gnosis`
+
+**Important**: After SQL or schema changes, always check affected queries.
+
+## Git Workflow
+
+- Use `fd` instead of `find` command (symlinked: `ln -s $(which fdfind) ~/.local/bin/fd`)
+- Never include "Co-Authored-By: Claude" in commits (per global CLAUDE.md)
+- Put "WIP" in commit message if changes were not tested and confirmed working
+- Only commit `manifest.json` if explicitly asked
+- Don't commit markdown files used for GG24 or other form submissions
+
+## Testing
+
+### Smart Contracts
+
+```bash
+# Run all tests with verbose output
+task test
+
+# Run specific test file
+task test:file FILE=SafeModuleManagerTest.t.sol
+
+# Run specific test function
+task test:function FUNC=testCreateModuleForSafe
+
+# Generate gas snapshots
+task snapshot
+
+# Check contract sizes
+task check-sizes
+
+# Or use forge directly for advanced options:
+forge test --gas-report
+forge test --match-path test/SafeModuleManagerTest.t.sol -vvv
+```
+
+### Frontend
+
+```bash
+# Type checking
+pnpm type-check
+
+# Build validation
+pnpm build
+```
+
+### Integration Testing
+
+After major changes:
+1. Run dev server: `pnpm dev`
+2. Check logs for errors
+3. Test Safe App mode: Load at https://app.safe.global as custom app
+4. Verify module operations work
+
+## Key Documentation
+
+- `ARCHITECTURE.md` - Visual system diagrams
+- `docs/FEATURES.md` - Critical features checklist (MUST READ before refactoring)
+- `docs/UPGRADE_PROCESS.md` - 5 upgrade scenarios with step-by-step procedures
+- `docs/SUBGRAPH_UPGRADES.md` - Event compatibility and impact analysis
+- `README.md` - Project overview and quick start
+- Online docs: https://notes.felipenovaesrocha.xyz/s/gHyTdvBYj
+
+## Contract Dependencies
+
+- OpenZeppelin Contracts v4.6.0
+- OpenZeppelin Contracts Upgradeable v4.6.0
+- Gnosis Safe v1.3.0
+- Zodiac v1.0.10
+- Solmate (Rari Capital)
+
+## Storage Layout Inspection
+
+Use the following command to inspect contract storage layout:
+
+```bash
+forge inspect pkg/contracts/src/CVStrategy/CVStrategyV0_0.sol storageLayout --md
+```
+
+This is useful for verifying storage compatibility during upgrades.
+
+## Port Management
+
+- `pnpm dev` always runs on port 3000
+- Different worktrees run on different ports, but keep the same port per worktree
+- Never kill ngrok when it's running
+
+## License
+
+AGPL-3.0
