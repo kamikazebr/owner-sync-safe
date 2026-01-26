@@ -447,6 +447,156 @@ This is useful for verifying storage compatibility during upgrades.
 - Different worktrees run on different ports, but keep the same port per worktree
 - Never kill ngrok when it's running
 
+## Troubleshooting & Lessons Learned
+
+### Common Issues & Solutions
+
+#### 1. Subgraph Endpoint `/version/latest` Not Working
+
+**Error:**
+```
+deployment `u29898/s108340/latest` does not exist
+```
+
+**Solution:**
+Use specific version in URL instead of `/version/latest`:
+- Dev: `https://api.studio.thegraph.com/query/29898/owner-sync-safe-gnosis/v0.1.1`
+- Prod: `https://gateway.thegraph.com/api/subgraphs/id/GJ5xkXEcTc8k23CbqpE97BEChJseRziTYCXGBDxQdTYi` (requires API key)
+
+**Test with curl first:**
+```bash
+curl -X POST 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-gnosis/v0.1.1' \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"{ _meta { block { number } } }"}'
+```
+
+#### 2. TypeScript Errors Not Caught Locally
+
+**Problem:** `pnpm dev` doesn't run full TypeScript checks
+
+**Solution:** ALWAYS run before committing:
+```bash
+pnpm type-check  # TypeScript validation
+pnpm build       # Production build test
+```
+
+**Common TypeScript fixes:**
+```typescript
+// Bad: implicit type causes deployment error
+const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+
+// Good: explicit type annotation
+const headers: Record<string, string> = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+```
+
+#### 3. Browser Cache After Config Changes
+
+**Problem:** Browser shows old errors even after code update
+
+**Solution:**
+```bash
+# 1. Clear Next.js cache
+rm -rf .next
+
+# 2. Restart dev server
+pnpm dev
+
+# 3. Hard refresh browser
+# Chrome/Edge: Ctrl + Shift + R (Cmd + Shift + R on Mac)
+# Or open incognito/private window
+```
+
+#### 4. Module Not Showing in UI
+
+**Problem:** Subgraph returns data via curl, but UI shows nothing
+
+**Root Cause:** `usePendingSetup` and `useActiveGroups` hooks require Safe App context
+
+**Solution:** Test INSIDE Safe App:
+1. Go to https://app.safe.global
+2. Settings → Apps → Add custom app
+3. Enter your ngrok or production URL
+4. Check browser DevTools Console for logs:
+   ```
+   [usePendingSetup] Effect running: { isSafeApp: true, ... }
+   [SubgraphClient] Creating client for chain 100...
+   ```
+
+#### 5. Vercel Deployment URL Confusion
+
+**Wrong:** Checking deployment-specific URL (temporary)
+```
+https://owner-sync-safe-8rqr8icgk-felipe-novaes-rochas-projects.vercel.app
+```
+
+**Right:** Check production URL (canonical)
+```bash
+vercel project ls  # Shows production URLs
+curl -I https://owner-sync-safe.vercel.app
+```
+
+### Pre-Commit Checklist
+
+Before every commit:
+```bash
+# 1. Type check
+pnpm type-check
+
+# 2. Build test (catches more issues)
+pnpm build
+
+# 3. Review staged changes
+git diff --staged
+```
+
+### Deployment Checklist
+
+- [ ] `pnpm type-check` passes
+- [ ] `pnpm build` succeeds locally
+- [ ] Remove "DEV" prefixes from production configs (`public/manifest.json`)
+- [ ] Verify environment variables set in Vercel Dashboard
+- [ ] After deploy, check **production URL** (from `vercel project ls`)
+- [ ] Test in Safe App context if Safe-specific features changed
+
+### Debugging Flow
+
+1. **Backend/API fails?** → Test with `curl` first
+2. **Frontend fails?** → Check browser DevTools Console
+3. **Build fails on Vercel?** → Run `pnpm type-check` and `pnpm build` locally
+4. **Hooks not running?** → Verify all dependencies (isSafeApp, safeInfo, publicClient)
+
+### Quick Commands Reference
+
+```bash
+# Clear Next.js cache and restart
+rm -rf .next && pnpm dev
+
+# Test subgraph query
+curl -X POST 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-gnosis/v0.1.1' \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"{ managedSafeModules(first: 5) { id safe } }"}'
+
+# Check Vercel deployments
+vercel ls              # List recent deployments
+vercel project ls      # Show production URLs
+
+# Ngrok fixed URL (for testing Safe App)
+ngrok http 3001 --url https://outgoing-rationally-weevil.ngrok-free.app
+```
+
+### Critical Files for Config Changes
+
+- `src/lib/subgraph-client.ts` - Subgraph endpoint configuration
+- `public/manifest.json` - Safe App metadata (remove "DEV -" for production)
+- `.env.example` - Document all required environment variables
+- `vercel.json` - Vercel build configuration
+
+### Never Commit
+
+- `.next/` - Next.js build cache (add to .gitignore)
+- `pkg/subgraph/build/subgraph.yaml` - Generated file
+- `pkg/subgraph/subgraph.yaml` - Generated file
+
 ## License
 
 AGPL-3.0
