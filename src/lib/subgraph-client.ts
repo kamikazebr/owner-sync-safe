@@ -35,22 +35,9 @@ export function getSubgraphClient(chainId: number): GraphQLClient {
   console.log('[SubgraphClient] Creating client for chain', chainId, 'with URL:', url);
 
   // Add API key header for production Gateway
-  const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+  const headers: Record<string, string> = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
 
-  return new GraphQLClient(url, {
-    headers,
-    timeout: 30000, // 30 second timeout
-    fetch: (url, options) => {
-      console.log('[SubgraphClient] Fetching:', url);
-      return fetch(url, options).then(response => {
-        console.log('[SubgraphClient] Response status:', response.status);
-        return response;
-      }).catch(error => {
-        console.error('[SubgraphClient] Fetch error:', error);
-        throw error;
-      });
-    },
-  });
+  return new GraphQLClient(url, { headers });
 }
 
 // Default client for Gnosis Chain (backwards compatibility)
