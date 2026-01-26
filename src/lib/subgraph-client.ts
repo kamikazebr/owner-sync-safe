@@ -1,23 +1,56 @@
 import { GraphQLClient } from 'graphql-request';
 
-// Subgraph endpoints per network - using /version/latest to always get the latest deployed version
-const SUBGRAPH_URLS: Record<number, string> = {
+// Subgraph endpoints per network
+// Development: Studio endpoints (no auth required)
+// Production: Gateway endpoints (requires API key)
+const SUBGRAPH_URLS_DEV: Record<number, string> = {
   // Gnosis Chain
-  100: 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-gnosis/version/latest',
+  100: 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-gnosis/v0.1.1',
   // Base
-  8453: 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-base/version/latest',
+  8453: 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-base/v0.1.1',
+};
+
+const SUBGRAPH_URLS_PROD: Record<number, string> = {
+  // Gnosis Chain
+  100: 'https://gateway.thegraph.com/api/subgraphs/id/GJ5xkXEcTc8k23CbqpE97BEChJseRziTYCXGBDxQdTYi',
+  // Base
+  8453: '', // Add production Gateway URL when deployed
 };
 
 /**
  * Get GraphQL client for a specific chain
  */
 export function getSubgraphClient(chainId: number): GraphQLClient {
+  const apiKey = process.env.NEXT_PUBLIC_GRAPH_API_KEY;
+
+  // Use production Gateway if API key is available, otherwise use dev Studio
+  const SUBGRAPH_URLS = apiKey ? SUBGRAPH_URLS_PROD : SUBGRAPH_URLS_DEV;
+
   const url = SUBGRAPH_URLS[chainId];
   if (!url) {
-    console.warn(`No subgraph configured for chain ${chainId}, falling back to Gnosis`);
+    console.warn(`[SubgraphClient] No subgraph configured for chain ${chainId}, falling back to Gnosis`);
     return new GraphQLClient(SUBGRAPH_URLS[100]);
   }
-  return new GraphQLClient(url);
+
+  console.log('[SubgraphClient] Creating client for chain', chainId, 'with URL:', url);
+
+  // Add API key header for production Gateway
+  const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+
+  return new GraphQLClient(url, {
+    headers,
+    timeout: 30000, // 30 second timeout
+    fetch: (url, options) => {
+      console.log('[SubgraphClient] Fetching:', url);
+      return fetch(url, options).then(response => {
+        console.log('[SubgraphClient] Response status:', response.status);
+        return response;
+      }).catch(error => {
+        console.error('[SubgraphClient] Fetch error:', error);
+        throw error;
+      });
+    },
+  });
 }
 
 // Default client for Gnosis Chain (backwards compatibility)

@@ -1,5 +1,5 @@
 {
-  "name": "DEV - Owner Sync Safe",
+  "name": "Owner Sync Safe",
   "description": "Gerenciamento de módulos Safe para sincronização de owners entre múltiplos Safes",
   "iconPath": "icon.png",
   "providedBy": {
