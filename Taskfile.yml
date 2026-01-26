@@ -13,6 +13,7 @@ vars:
   ARBITRUM_CHAIN_ID: 42161
   OPTIMISM_CHAIN_ID: 10
   POLYGON_CHAIN_ID: 137
+  CELO_CHAIN_ID: 42220
 
 # ============================================================================
 # CORE DEVELOPMENT TASKS
@@ -227,6 +228,40 @@ tasks:
       - echo ""
       - echo "📝 Updating networks.json..."
       - ./scripts/update-deployment-addresses.sh optimism registry
+      - echo ""
+      - echo "🔄 Syncing configs to subgraph..."
+      - pnpm sync-configs
+      - echo ""
+      - echo "✅ Deployment complete!"
+
+  # ============================================================================
+  # DEPLOYMENT TASKS - CELO
+  # ============================================================================
+
+  "deploy:registry:celo":
+    desc: Deploy SyncGroupRegistry to Celo
+    deps: [test]
+    preconditions:
+      - test -f .env
+      - sh: test -n "{{.RPC_URL_CELO}}"
+        msg: "RPC_URL_CELO not set in .env"
+      - sh: test -n "{{.CELOSCAN_API_KEY}}"
+        msg: "CELOSCAN_API_KEY not set in .env"
+    cmds:
+      - echo "🚀 Deploying SyncGroupRegistry to Celo..."
+      - |
+        forge script script/DeployUUPSMultiChain.s.sol:DeployUUPSMultiChain \
+          --rpc-url {{.RPC_URL_CELO}} \
+          --account pkf \
+          --sig "deployRegistry(string)" 'celo' \
+          --chain-id {{.CELO_CHAIN_ID}} \
+          --broadcast \
+          --verify \
+          --etherscan-api-key {{.CELOSCAN_API_KEY}} \
+          -vvv
+      - echo ""
+      - echo "📝 Updating networks.json..."
+      - ./scripts/update-deployment-addresses.sh celo registry
       - echo ""
       - echo "🔄 Syncing configs to subgraph..."
       - pnpm sync-configs

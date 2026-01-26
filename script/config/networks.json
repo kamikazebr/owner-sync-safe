@@ -42,6 +42,39 @@
         "notes": "Deployed to Base on 2026-01-15",
         "verified": true
       }
+    },
+    {
+      "name": "celo",
+      "chainId": 42220,
+      "testnet": false,
+      "ENVS": {
+        "SENDER": "0x2F9e113434aeBDd70bB99cB6505e1F726C578D6d"
+      },
+      "PROXIES": {},
+      "IMPLEMENTATIONS": {},
+      "METADATA": {}
+    },
+    {
+      "name": "arbitrum",
+      "chainId": 42161,
+      "testnet": false,
+      "ENVS": {
+        "SENDER": "0x2F9e113434aeBDd70bB99cB6505e1F726C578D6d"
+      },
+      "PROXIES": {},
+      "IMPLEMENTATIONS": {},
+      "METADATA": {}
+    },
+    {
+      "name": "optimism",
+      "chainId": 10,
+      "testnet": false,
+      "ENVS": {
+        "SENDER": "0x2F9e113434aeBDd70bB99cB6505e1F726C578D6d"
+      },
+      "PROXIES": {},
+      "IMPLEMENTATIONS": {},
+      "METADATA": {}
     }
   ]
 }
