@@ -16,14 +16,11 @@ RPC_URL_BASE=https://base-mainnet.g.alchemy.com/v2/YOUR_KEY
 RPC_URL_OPTIMISM=https://opt-mainnet.g.alchemy.com/v2/YOUR_KEY
 RPC_URL_ARBITRUM=https://arb-mainnet.g.alchemy.com/v2/YOUR_KEY
 
-# API Keys for verification
-ETHERSCAN_API_KEY=your_key        # For Gnosis
-CELOSCAN_API_KEY=your_key
-POLYGONSCAN_API_KEY=your_key
-BASESCAN_API_KEY=your_key
-OPTIMISTIC_ETHERSCAN_API_KEY=your_key
-ARBISCAN_API_KEY=your_key
+# Etherscan API v2 (unified for ALL networks)
+ETHERSCAN_API_KEY=your_etherscan_api_key
 ```
+
+**Note**: Etherscan API v2 is unified across all EVM chains. One key works for Gnosis, Celo, Polygon, Base, Optimism, Arbitrum, and more.
 
 ## 🚀 Deployment Commands
 

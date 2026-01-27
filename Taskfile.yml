@@ -143,8 +143,8 @@ tasks:
       - test -f .env
       - sh: test -n "{{.RPC_URL_BASE}}"
         msg: "RPC_URL_BASE not set in .env"
-      - sh: test -n "{{.BASESCAN_API_KEY}}"
-        msg: "BASESCAN_API_KEY not set in .env"
+      - sh: test -n "{{.ETHERSCAN_API_KEY}}"
+        msg: "ETHERSCAN_API_KEY not set in .env (Etherscan API v2 unified)"
     cmds:
       - echo "🚀 Deploying SyncGroupRegistry to Base..."
       - |
@@ -155,7 +155,7 @@ tasks:
           --chain-id {{.BASE_CHAIN_ID}} \
           --broadcast \
           --verify \
-          --etherscan-api-key {{.BASESCAN_API_KEY}} \
+          --etherscan-api-key {{.ETHERSCAN_API_KEY}} \
           -vvv
       - echo ""
       - echo "📝 Updating networks.json..."
@@ -177,8 +177,8 @@ tasks:
       - test -f .env
       - sh: test -n "{{.RPC_URL_ARBITRUM}}"
         msg: "RPC_URL_ARBITRUM not set in .env"
-      - sh: test -n "{{.ARBISCAN_API_KEY}}"
-        msg: "ARBISCAN_API_KEY not set in .env"
+      - sh: test -n "{{.ETHERSCAN_API_KEY}}"
+        msg: "ETHERSCAN_API_KEY not set in .env (Etherscan API v2 unified)"
     cmds:
       - echo "🚀 Deploying SyncGroupRegistry to Arbitrum One..."
       - |
@@ -189,7 +189,7 @@ tasks:
           --chain-id {{.ARBITRUM_CHAIN_ID}} \
           --broadcast \
           --verify \
-          --etherscan-api-key {{.ARBISCAN_API_KEY}} \
+          --etherscan-api-key {{.ETHERSCAN_API_KEY}} \
           -vvv
       - echo ""
       - echo "📝 Updating networks.json..."
@@ -211,8 +211,8 @@ tasks:
       - test -f .env
       - sh: test -n "{{.RPC_URL_OPTIMISM}}"
         msg: "RPC_URL_OPTIMISM not set in .env"
-      - sh: test -n "{{.OPTIMISTIC_ETHERSCAN_API_KEY}}"
-        msg: "OPTIMISTIC_ETHERSCAN_API_KEY not set in .env"
+      - sh: test -n "{{.ETHERSCAN_API_KEY}}"
+        msg: "ETHERSCAN_API_KEY not set in .env (Etherscan API v2 unified)"
     cmds:
       - echo "🚀 Deploying SyncGroupRegistry to Optimism..."
       - |
@@ -223,7 +223,7 @@ tasks:
           --chain-id {{.OPTIMISM_CHAIN_ID}} \
           --broadcast \
           --verify \
-          --etherscan-api-key {{.OPTIMISTIC_ETHERSCAN_API_KEY}} \
+          --etherscan-api-key {{.ETHERSCAN_API_KEY}} \
           -vvv
       - echo ""
       - echo "📝 Updating networks.json..."
@@ -245,8 +245,8 @@ tasks:
       - test -f .env
       - sh: test -n "{{.RPC_URL_CELO}}"
         msg: "RPC_URL_CELO not set in .env"
-      - sh: test -n "{{.CELOSCAN_API_KEY}}"
-        msg: "CELOSCAN_API_KEY not set in .env"
+      - sh: test -n "{{.ETHERSCAN_API_KEY}}"
+        msg: "ETHERSCAN_API_KEY not set in .env (Etherscan API v2 unified)"
     cmds:
       - echo "🚀 Deploying SyncGroupRegistry to Celo..."
       - |
@@ -257,7 +257,7 @@ tasks:
           --chain-id {{.CELO_CHAIN_ID}} \
           --broadcast \
           --verify \
-          --etherscan-api-key {{.CELOSCAN_API_KEY}} \
+          --etherscan-api-key {{.ETHERSCAN_API_KEY}} \
           -vvv
       - echo ""
       - echo "📝 Updating networks.json..."
@@ -279,8 +279,8 @@ tasks:
       - test -f .env
       - sh: test -n "{{.RPC_URL_POLYGON}}"
         msg: "RPC_URL_POLYGON not set in .env"
-      - sh: test -n "{{.POLYGONSCAN_API_KEY}}"
-        msg: "POLYGONSCAN_API_KEY not set in .env"
+      - sh: test -n "{{.ETHERSCAN_API_KEY}}"
+        msg: "ETHERSCAN_API_KEY not set in .env (Etherscan API v2 unified)"
     cmds:
       - echo "🚀 Deploying SyncGroupRegistry to Polygon..."
       - |
@@ -291,7 +291,7 @@ tasks:
           --chain-id {{.POLYGON_CHAIN_ID}} \
           --broadcast \
           --verify \
-          --etherscan-api-key {{.POLYGONSCAN_API_KEY}} \
+          --etherscan-api-key {{.ETHERSCAN_API_KEY}} \
           -vvv
       - echo ""
       - echo "📝 Updating networks.json..."
