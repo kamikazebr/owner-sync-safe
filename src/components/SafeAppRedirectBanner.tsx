@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AlertCircle, ExternalLink, X, Copy, Check } from 'lucide-react';
+import { ExternalLink, Copy, Check } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { isAddress } from 'viem';
-import { extractSafeAddress } from '@/lib/utils';
 
 const CHAIN_PREFIXES: Record<number, string> = {
   1: 'eth',
@@ -14,74 +13,62 @@ const CHAIN_PREFIXES: Record<number, string> = {
   84532: 'basesep',
 };
 
-const DISMISS_KEY = 'safeAppRedirectBannerDismissed';
-
 export function SafeAppRedirectBanner() {
   const [safeAddress, setSafeAddress] = useState('');
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [detectedChain, setDetectedChain] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { chainId } = useAccount();
 
-  // Parse Safe address from various formats
-  const parseSafeAddress = (input: string): string | null => {
-    // Remove whitespace
+  // Extract address and chain from various formats
+  const extractAddressAndChain = (input: string): { address: string; chain: string | null } | null => {
     input = input.trim();
 
-    // Case 1: Direct Ethereum address (0x...)
-    if (isAddress(input)) {
-      return input;
-    }
-
-    // Case 2: Safe App URL format (https://app.safe.global/apps/open?safe=gno:0x...)
+    // Case 1: Safe App URL format (https://app.safe.global/apps/open?safe=gno:0x...)
     try {
       const url = new URL(input);
       const safeParam = url.searchParams.get('safe');
       if (safeParam) {
-        // Remove chain prefix (e.g., "gno:0x..." -> "0x...")
-        const address = safeParam.includes(':') ? safeParam.split(':')[1] : safeParam;
-        if (isAddress(address)) {
-          return address;
+        if (safeParam.includes(':')) {
+          const [chain, address] = safeParam.split(':');
+          if (isAddress(address)) {
+            return { address, chain };
+          }
+        } else if (isAddress(safeParam)) {
+          return { address: safeParam, chain: null };
         }
       }
     } catch {
       // Not a valid URL, continue
     }
 
-    // Case 3: Chain-prefixed format (gno:0x... or eth:0x...)
+    // Case 2: Chain-prefixed format (gno:0x... or eth:0x...)
     if (input.includes(':')) {
-      const address = input.split(':')[1];
+      const [chain, address] = input.split(':');
       if (isAddress(address)) {
-        return address;
+        return { address, chain };
       }
+    }
+
+    // Case 3: Direct Ethereum address (0x...)
+    if (isAddress(input)) {
+      return { address: input, chain: null };
     }
 
     return null;
   };
 
-  // Check localStorage on mount
+  // Check for safe address in URL query params on mount
   useEffect(() => {
-    const dismissed = localStorage.getItem(DISMISS_KEY);
-    if (dismissed === 'true') {
-      setIsDismissed(true);
-    }
-
-    // Check for safe address in URL query params
     const params = new URLSearchParams(window.location.search);
     const safeParam = params.get('safe');
     if (safeParam) {
-      const parsed = parseSafeAddress(safeParam);
+      const parsed = extractAddressAndChain(safeParam);
       if (parsed) {
-        setSafeAddress(parsed);
+        setSafeAddress(parsed.address);
+        setDetectedChain(parsed.chain);
       }
     }
   }, []);
-
-  const handleDismiss = (permanent = false) => {
-    if (permanent) {
-      localStorage.setItem(DISMISS_KEY, 'true');
-    }
-    setIsDismissed(true);
-  };
 
   const getAppUrl = () => {
     // Get current URL without query params
@@ -92,9 +79,16 @@ export function SafeAppRedirectBanner() {
   const generateSafeAppLink = () => {
     if (!safeAddress || !isAddress(safeAddress)) return null;
 
-    const chain = CHAIN_PREFIXES[chainId || 100] || 'gno';
+    // Use detected chain from input, fallback to connected wallet chain, fallback to gnosis
+    const chain = detectedChain || CHAIN_PREFIXES[chainId || 100] || 'gno';
     const appUrl = getAppUrl();
     return `https://app.safe.global/apps/open?safe=${chain}:${safeAddress}&appUrl=${appUrl}`;
+  };
+
+  // Get display name for chain
+  const getChainDisplay = () => {
+    const chain = detectedChain || CHAIN_PREFIXES[chainId || 100] || 'gno';
+    return chain.toUpperCase();
   };
 
   const handleCopyLink = async () => {
@@ -149,122 +143,82 @@ export function SafeAppRedirectBanner() {
     }
   };
 
-  if (isDismissed) return null;
-
   const safeLink = generateSafeAppLink();
   const isValidAddress = safeAddress && isAddress(safeAddress);
 
+  // Return inline elements for navbar integration
   return (
-    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-b-2 border-amber-300 dark:border-amber-700 sticky top-0 z-50 shadow-md">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex gap-4 items-start">
-          {/* Icon */}
-          <div className="flex-shrink-0 mt-1">
-            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/50 rounded-full flex items-center justify-center">
-              <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold text-amber-900 dark:text-amber-100 mb-1">
-              ⚠️ Open in Safe App for Best Experience
-            </h3>
-            <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
-              This application is designed to run inside the Safe App. Enter your Safe address below to generate a direct link.
-            </p>
-
-            {/* Input and buttons */}
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  placeholder="Enter Safe address or paste Safe App URL"
-                  value={safeAddress}
-                  onChange={(e) => {
-                    const input = e.target.value;
-                    // Try to extract address from input (URL, chain:address, or direct address)
-                    const extracted = extractSafeAddress(input);
-                    // If we extracted an address, use it; otherwise keep the raw input for user to see/edit
-                    setSafeAddress(extracted || input);
-                  }}
-                  onPaste={(e) => {
-                    // On paste, try to parse the pasted content
-                    const pastedText = e.clipboardData.getData('text');
-                    const parsed = extractSafeAddress(pastedText);
-                    if (parsed) {
-                      e.preventDefault();
-                      setSafeAddress(parsed);
-                    }
-                  }}
-                  className="w-full px-3 py-2 text-sm border border-amber-300 dark:border-amber-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-                {safeAddress && !isValidAddress && (
-                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                    Invalid Ethereum address
-                  </p>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={handleOpenInSafe}
-                  disabled={!isValidAddress}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Open in Safe
-                </button>
-
-                {safeLink && (
-                  <button
-                    onClick={handleCopyLink}
-                    className="px-3 py-2 bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-900/70 text-amber-900 dark:text-amber-100 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
-                    title="Copy link"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copy Link
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Network info */}
-            {chainId && (
-              <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
-                Network: {CHAIN_PREFIXES[chainId] ? CHAIN_PREFIXES[chainId].toUpperCase() : 'Unknown'} (Chain ID: {chainId})
-              </p>
-            )}
-          </div>
-
-          {/* Close buttons */}
-          <div className="flex-shrink-0 flex flex-col gap-2">
-            <button
-              onClick={() => handleDismiss(false)}
-              className="p-2 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 rounded-lg transition-colors"
-              title="Hide for now"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => handleDismiss(true)}
-              className="px-2 py-1 text-xs text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 underline"
-              title="Don't show again"
-            >
-              Don't show again
-            </button>
-          </div>
+    <div className="flex items-center gap-2">
+      {/* Icon */}
+      <div className="flex-shrink-0">
+        <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center">
+          <ExternalLink className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
         </div>
       </div>
+
+      {/* Input - compact */}
+      <input
+        type="text"
+        placeholder="Paste Safe address or URL..."
+        value={safeAddress}
+        onChange={(e) => setSafeAddress(e.target.value)}
+        onPaste={(e) => {
+          const pastedText = e.clipboardData.getData('text');
+          const parsed = extractAddressAndChain(pastedText);
+          if (parsed) {
+            e.preventDefault();
+            setSafeAddress(parsed.address);
+            setDetectedChain(parsed.chain);
+          }
+        }}
+        onBlur={(e) => {
+          const extracted = extractAddressAndChain(e.target.value);
+          if (extracted) {
+            setSafeAddress(extracted.address);
+            setDetectedChain(extracted.chain);
+          }
+        }}
+        className="w-48 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+      />
+
+      {/* Chain badge - show which network will be used */}
+      {isValidAddress && (
+        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs font-mono font-semibold">
+          {getChainDisplay()}
+        </span>
+      )}
+
+      {/* Open button */}
+      <button
+        onClick={handleOpenInSafe}
+        disabled={!isValidAddress}
+        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap"
+      >
+        <ExternalLink className="h-4 w-4" />
+        Open in Safe
+      </button>
+
+      {/* Copy button */}
+      {safeLink && (
+        <button
+          onClick={handleCopyLink}
+          className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+          title="Copy link"
+        >
+          {copied ? (
+            <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
+        </button>
+      )}
+
+      {/* Error tooltip */}
+      {safeAddress && !isValidAddress && (
+        <span className="text-xs text-red-600 dark:text-red-400">
+          ✗
+        </span>
+      )}
     </div>
   );
 }

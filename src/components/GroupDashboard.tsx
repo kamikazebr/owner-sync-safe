@@ -46,11 +46,15 @@ interface SafeListItemProps {
   explorerUrl: string;
   copiedField: string | null;
   handleCopy: (text: string, field: string) => void;
+  activeSafesCount: number;
 }
 
-function SafeListItem({ safe, chainId, explorerUrl, copiedField, handleCopy }: SafeListItemProps) {
+function SafeListItem({ safe, chainId, explorerUrl, copiedField, handleCopy, activeSafesCount }: SafeListItemProps) {
   // Get sync status for this Safe (hooks can be called here since it's a component)
   const syncStatus = safe.isActive ? useOwnerSyncStatus(safe.safeAddress, safe.moduleAddress) : null;
+
+  // Only show sync status if there are multiple Safes to sync (2+)
+  const showSyncStatus = activeSafesCount > 1;
 
   return (
     <div
@@ -129,12 +133,12 @@ function SafeListItem({ safe, chainId, explorerUrl, copiedField, handleCopy }: S
                 <Check className="h-3 w-3 mr-1" />
                 Active
               </span>
-              {syncStatus && syncStatus.isInSync ? (
+              {showSyncStatus && syncStatus && syncStatus.isInSync ? (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
                   <CheckCircle className="h-3 w-3 mr-1" />
                   In Sync
                 </span>
-              ) : syncStatus && syncStatus.needsSync ? (
+              ) : showSyncStatus && syncStatus && syncStatus.needsSync ? (
                 <span
                   className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 cursor-help"
                   title={`Actual owners: ${syncStatus.actualOwners.length}, Cached: ${syncStatus.cachedOwners.length}`}
@@ -603,40 +607,50 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
           </div>
         </div>
 
-        {/* Template Info */}
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <div className="flex items-center mb-3">
-            <Settings className="h-4 w-4 text-purple-600 dark:text-purple-400 mr-2" />
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Module Template</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">ManagedSafeModule</p>
-            </div>
-          </div>
+        {/* Your Module Proxy (if connected Safe is in this group) */}
+        {(() => {
+          const connectedSafeModule = isSafeApp && safeInfo
+            ? safes.find(s => s.safeAddress.toLowerCase() === safeInfo.safeAddress.toLowerCase())
+            : null;
 
-          <div className="flex items-center gap-2">
-            <code className="flex-1 text-xs font-mono text-gray-700 dark:text-gray-300 break-all">
-              {group.template}
-            </code>
-            <button
-              onClick={() => handleCopy(group.template, 'template')}
-              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-            >
-              {copiedField === 'template' ? (
-                <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-              ) : (
-                <Copy className="h-3.5 w-3.5" />
-              )}
-            </button>
-            <a
-              href={`${explorerUrl}/address/${group.template}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </div>
-        </div>
+          if (!connectedSafeModule) return null;
+
+          return (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <div className="flex items-center mb-3">
+                <Settings className="h-4 w-4 text-purple-600 dark:text-purple-400 mr-2" />
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Your Module</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">ManagedSafeModule Proxy</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs font-mono text-gray-700 dark:text-gray-300 break-all">
+                  {connectedSafeModule.moduleAddress}
+                </code>
+                <button
+                  onClick={() => handleCopy(connectedSafeModule.moduleAddress, 'your-module')}
+                  className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                >
+                  {copiedField === 'your-module' ? (
+                    <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </button>
+                <a
+                  href={`${explorerUrl}/address/${connectedSafeModule.moduleAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Governance Safe */}
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -674,64 +688,98 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
         </div>
       </div>
 
-      {/* Add Safe to Group Section */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-          <Plus className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
-          Add Safe to Group
-        </h3>
+      {/* Advanced Info - Collapsible */}
+      <details className="mt-6">
+        <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 flex items-center gap-2">
+          <Settings className="h-4 w-4" />
+          Advanced Info
+        </summary>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Safe Address or URL
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={safeToAdd}
-                onChange={(e) => setSafeToAdd(e.target.value)}
-                placeholder="0x... or https://app.safe.global/home?safe=gno:0x..."
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500"
-                disabled={isAddingSafe || isCreatingModule}
-              />
-              <button
-                onClick={handleAddSafe}
-                disabled={isAddingSafe || isCreatingModule || !safeToAdd.trim()}
-                className="px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isAddingSafe || isCreatingModule ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4" />
-                    Add Safe
-                  </>
-                )}
-              </button>
-            </div>
-            {addSafeError && (
-              <p className="mt-2 text-sm text-red-600 dark:text-red-400">{addSafeError}</p>
-            )}
-          </div>
-
-          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div className="flex gap-3">
-              <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-900 dark:text-blue-300">
-                <p className="font-medium mb-1">After adding a Safe</p>
-                <ol className="list-decimal list-inside space-y-1 text-blue-800 dark:text-blue-400">
-                  <li>The module will be created for the Safe</li>
-                  <li>The Safe owners must enable the module via Safe's interface</li>
-                  <li>Once enabled, owners can be synchronized across the group</li>
-                </ol>
+        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Module Template (Implementation)</h4>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs font-mono text-gray-700 dark:text-gray-300 break-all">
+                  {group.template}
+                </code>
+                <button
+                  onClick={() => handleCopy(group.template, 'template')}
+                  className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                >
+                  {copiedField === 'template' ? (
+                    <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </button>
+                <a
+                  href={`${explorerUrl}/address/${group.template}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                ⚠️ This is the implementation contract. Do NOT enable this on your Safe. Use the "Your Module" address above.
+              </p>
             </div>
           </div>
         </div>
+      </details>
+
+      {/* Add Safe to Group Section - Compact */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+          <span className="text-sm font-medium text-gray-900 dark:text-white">Add Safe to Group</span>
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={safeToAdd}
+            onChange={(e) => setSafeToAdd(e.target.value)}
+            placeholder="Paste Safe address or URL here..."
+            className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500"
+            disabled={isAddingSafe || isCreatingModule}
+          />
+          <button
+            onClick={handleAddSafe}
+            disabled={isAddingSafe || isCreatingModule || !safeToAdd.trim()}
+            className="px-4 py-2 text-sm bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+          >
+            {isAddingSafe || isCreatingModule ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Adding...
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                Add
+              </>
+            )}
+          </button>
+        </div>
+
+        {addSafeError && (
+          <p className="mt-2 text-xs text-red-600 dark:text-red-400">{addSafeError}</p>
+        )}
+
+        {/* Collapsible info */}
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+            ℹ️ How it works
+          </summary>
+          <ol className="list-decimal list-inside mt-2 space-y-1 text-xs text-gray-600 dark:text-gray-400 pl-4">
+            <li>Module created for the Safe</li>
+            <li>Safe owners enable module via Safe interface</li>
+            <li>Owners synchronized across group</li>
+          </ol>
+        </details>
       </div>
 
       {/* Managed Safes Section */}
@@ -779,6 +827,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
                       explorerUrl={explorerUrl}
                       copiedField={copiedField}
                       handleCopy={handleCopy}
+                      activeSafesCount={activeSafesCount}
                     />
                   ))}
                 </div>
@@ -801,6 +850,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
                       explorerUrl={explorerUrl}
                       copiedField={copiedField}
                       handleCopy={handleCopy}
+                      activeSafesCount={activeSafesCount}
                     />
                   ))}
                 </div>

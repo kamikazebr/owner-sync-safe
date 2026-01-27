@@ -15,7 +15,6 @@ import { SetupBanner } from '@/components/SetupBanner';
 import { ActiveGroupsBanner } from '@/components/ActiveGroupsBanner';
 import { CompactActiveGroupBanner } from '@/components/CompactActiveGroupBanner';
 import { Home, Users, Shield } from 'lucide-react';
-import { SafeAppRedirectBanner } from '@/components/SafeAppRedirectBanner';
 import { SupportedNetworks } from '@/components/SupportedNetworks';
 
 export default function HomePage() {
@@ -93,14 +92,10 @@ function HomeClient() {
     <>
       <Toaster position="top-right" />
 
-      {/* Show redirect banner when NOT in Safe App */}
-      {!isSafeApp && !safeLoading && (
-        <SafeAppRedirectBanner />
-      )}
-
       <AppLayout
         activeView={activeView}
         onViewChange={handleViewChange}
+        showSafeRedirect={!isSafeApp && !safeLoading}
       >
         {/* Dashboard View */}
         {activeView === 'dashboard' && (

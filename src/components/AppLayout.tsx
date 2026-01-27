@@ -5,6 +5,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Shield, Menu, X } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
+import { SafeAppRedirectBanner } from './SafeAppRedirectBanner';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -13,9 +14,10 @@ interface AppLayoutProps {
   activeView: string;
   onViewChange: (view: string) => void;
   groups?: Array<{ id: number; name: string }>;
+  showSafeRedirect?: boolean;
 }
 
-export function AppLayout({ children, activeView, onViewChange, groups }: AppLayoutProps) {
+export function AppLayout({ children, activeView, onViewChange, groups, showSafeRedirect = false }: AppLayoutProps) {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   return (
@@ -25,10 +27,10 @@ export function AppLayout({ children, activeView, onViewChange, groups }: AppLay
 
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-40">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-3 gap-2">
           <button
             onClick={() => setShowMobileSidebar(!showMobileSidebar)}
-            className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+            className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex-shrink-0"
           >
             {showMobileSidebar ? (
               <X className="h-6 w-6" />
@@ -37,12 +39,23 @@ export function AppLayout({ children, activeView, onViewChange, groups }: AppLay
             )}
           </button>
 
-          <div className="flex items-center space-x-2">
+          {/* Logo - hidden when Safe redirect is shown on small screens */}
+          <div className={cn(
+            "flex items-center space-x-2",
+            showSafeRedirect && "hidden sm:flex"
+          )}>
             <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             <span className="font-bold text-gray-900 dark:text-white">Owner Sync</span>
           </div>
 
-          <div className="scale-75 origin-right">
+          {/* Safe App Redirect - show on mobile */}
+          {showSafeRedirect && (
+            <div className="flex-1 min-w-0 scale-90 origin-left">
+              <SafeAppRedirectBanner />
+            </div>
+          )}
+
+          <div className="scale-75 origin-right flex-shrink-0">
             <ConnectButton
               chainStatus="icon"
               showBalance={false}
@@ -103,7 +116,18 @@ export function AppLayout({ children, activeView, onViewChange, groups }: AppLay
       <div className="lg:pl-64">
         {/* Desktop Header */}
         <div className="hidden lg:block sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <div className="px-8 py-4 flex justify-end">
+          <div className="px-8 py-6 flex justify-between items-center">
+            {/* Safe App Redirect (left side) */}
+            {showSafeRedirect && (
+              <div className="flex-shrink-0">
+                <SafeAppRedirectBanner />
+              </div>
+            )}
+
+            {/* Spacer when no redirect */}
+            {!showSafeRedirect && <div />}
+
+            {/* Connect Button (right side) */}
             <ConnectButton />
           </div>
         </div>
