@@ -223,7 +223,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
   const [safeProgress, setSafeProgress] = useState<SafeProgress[]>([]);
 
   // Use group's manager address
-  const { createModuleForSafe, createModulesForSafes, isLoading: isCreatingModule } = useModuleManager(group?.manager as Address);
+  const { createModuleForSafe, createModulesForSafes, createModulesForSafesBatch, isLoading: isCreatingModule } = useModuleManager(group?.manager as Address);
   const { safes, isLoading: isLoadingSafes, refetch: refetchSafes } = useGroupSafes(group?.manager as Address, chainId || 100);
 
   // Calculate active Safes count for button states
@@ -504,13 +504,19 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
     setIsAddingSafe(true);
     try {
       const addresses = newSafes.map(s => s.address);
-      const { successful, failed } = await createModulesForSafes(addresses, (current, total, address, status) => {
-        setSafeProgress(prev => prev.map(p =>
-          p.address.toLowerCase() === address.toLowerCase()
-            ? { ...p, status: status === 'pending' ? 'processing' : status }
-            : p
-        ));
-      });
+
+      // Use multicall batch for single transaction
+      setSafeProgress(prev => prev.map(p => ({ ...p, status: 'processing' as const })));
+
+      const { hash, successful, failed } = await createModulesForSafesBatch(addresses);
+
+      if (hash) {
+        // Update all to success
+        setSafeProgress(prev => prev.map(p => ({ ...p, status: 'success' as const })));
+      } else {
+        // Update all to error if batch failed
+        setSafeProgress(prev => prev.map(p => ({ ...p, status: 'error' as const })));
+      }
 
       if (successful.length > 0) {
         setSafeToAdd('');
