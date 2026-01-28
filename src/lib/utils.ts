@@ -202,7 +202,6 @@ export function extractSafeAddressWithChain(input: string): { address: string; c
   if (!input || typeof input !== 'string') return null;
 
   const trimmed = input.trim();
-  let chainPrefix: string | null = null;
 
   // Try to parse as URL
   try {
