@@ -28,3 +28,9 @@ tsconfig.tsbuildinfo
 
 
 internal_docs/
+
+# Gas Town (added by gt)
+.runtime/
+.claude/
+.beads/
+.logs/
