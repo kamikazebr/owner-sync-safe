@@ -161,3 +161,104 @@ export function extractSafeAddress(input: string): string | null {
 
   return null;
 }
+
+/**
+ * Chain prefix to chain ID mapping
+ */
+export const CHAIN_PREFIX_TO_ID: Record<string, number> = {
+  'gno': 100,
+  'gnosis': 100,
+  'eth': 1,
+  'matic': 137,
+  'arb': 42161,
+  'oeth': 10,
+  'base': 8453,
+  'sep': 11155111,
+  'gor': 5,
+  'celo': 42220,
+};
+
+/**
+ * Chain ID to display name mapping
+ */
+export const CHAIN_ID_TO_NAME: Record<number, string> = {
+  100: 'Gnosis',
+  1: 'Ethereum',
+  137: 'Polygon',
+  42161: 'Arbitrum',
+  10: 'Optimism',
+  8453: 'Base',
+  11155111: 'Sepolia',
+  5: 'Goerli',
+  42220: 'Celo',
+};
+
+/**
+ * Extract Safe address and chain from various input formats
+ * @param input - URL, chain-prefixed address, or direct address
+ * @returns Object with address and chainId, or null if invalid
+ */
+export function extractSafeAddressWithChain(input: string): { address: string; chainId: number | null } | null {
+  if (!input || typeof input !== 'string') return null;
+
+  const trimmed = input.trim();
+
+  // Try to parse as URL
+  try {
+    const url = new URL(trimmed);
+    // Extract from ?safe=chain:address or ?safe=address
+    const safeParam = url.searchParams.get('safe');
+    if (safeParam) {
+      if (safeParam.includes(':')) {
+        const [prefix, address] = safeParam.split(':', 2);
+        if (isValidAddress(address)) {
+          chainPrefix = prefix;
+          return {
+            address,
+            chainId: CHAIN_PREFIX_TO_ID[prefix.toLowerCase()] ?? null,
+          };
+        }
+      } else if (isValidAddress(safeParam)) {
+        return { address: safeParam, chainId: null };
+      }
+    }
+  } catch {
+    // Not a URL, continue with other formats
+  }
+
+  // Try to match chain:address pattern
+  const chainPrefixMatch = trimmed.match(/(gno|eth|matic|arb|oeth|base|sep|gor|ogor|zkevm|zksync|aurora|avax|bnb|celo|gnosis):0x[a-fA-F0-9]{40}/);
+  if (chainPrefixMatch) {
+    const [fullMatch] = chainPrefixMatch;
+    const [prefix, address] = fullMatch.split(':', 2);
+    if (isValidAddress(address)) {
+      return {
+        address,
+        chainId: CHAIN_PREFIX_TO_ID[prefix.toLowerCase()] ?? null,
+      };
+    }
+  }
+
+  // Check if it has chain prefix (e.g., "gno:0x123")
+  if (trimmed.includes(':')) {
+    const parts = trimmed.split(':');
+    if (parts.length >= 2) {
+      const [prefix, ...addressParts] = parts;
+      const address = addressParts.join(':');
+      if (isValidAddress(address)) {
+        return {
+          address,
+          chainId: CHAIN_PREFIX_TO_ID[prefix.toLowerCase()] ?? null,
+        };
+      }
+    }
+  }
+
+  // Try to extract any Ethereum address from the string
+  const addressMatch = trimmed.match(/0x[a-fA-F0-9]{40}/);
+  if (addressMatch && isValidAddress(addressMatch[0])) {
+    return { address: addressMatch[0], chainId: null };
+  }
+
+  return null;
+}

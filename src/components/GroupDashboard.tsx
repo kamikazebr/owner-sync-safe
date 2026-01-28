@@ -26,7 +26,7 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react';
-import { cn, extractSafeAddress } from '@/lib/utils';
+import { cn, extractSafeAddress, extractSafeAddressWithChain, CHAIN_ID_TO_NAME } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import * as Dialog from '@radix-ui/react-dialog';
 import { OwnerManagementModal } from '@/components/OwnerManagementModal';
@@ -205,8 +205,25 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
   const [isAddingSafe, setIsAddingSafe] = useState(false);
   const [addSafeError, setAddSafeError] = useState('');
 
+  // Parsed Safes with chain info
+  interface ParsedSafe {
+    address: Address;
+    chainId: number | null;
+    chainName: string | null;
+    isValidChain: boolean;
+    input: string;
+  }
+  const [parsedSafes, setParsedSafes] = useState<ParsedSafe[]>([]);
+
+  // Progress tracking for batch add
+  interface SafeProgress {
+    address: Address;
+    status: 'pending' | 'processing' | 'success' | 'error';
+  }
+  const [safeProgress, setSafeProgress] = useState<SafeProgress[]>([]);
+
   // Use group's manager address
-  const { createModuleForSafe, isLoading: isCreatingModule } = useModuleManager(group?.manager as Address);
+  const { createModuleForSafe, createModulesForSafes, isLoading: isCreatingModule } = useModuleManager(group?.manager as Address);
   const { safes, isLoading: isLoadingSafes, refetch: refetchSafes } = useGroupSafes(group?.manager as Address, chainId || 100);
 
   // Calculate active Safes count for button states
@@ -409,48 +426,108 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
     return buildSafeTransactionBuilderUrl(chainId, group.owner as Address, deactivateTransaction);
   };
 
+  // Parse input text and extract multiple Safe addresses
+  const parseSafeInput = (input: string): ParsedSafe[] => {
+    if (!input.trim()) return [];
+
+    // Split by newline or comma
+    const lines = input.split(/[\n,]/).map(l => l.trim()).filter(l => l);
+    const parsed: ParsedSafe[] = [];
+
+    for (const line of lines) {
+      const result = extractSafeAddressWithChain(line);
+      if (result) {
+        const { address, chainId: detectedChainId } = result;
+        const chainName = detectedChainId ? CHAIN_ID_TO_NAME[detectedChainId] || 'Unknown' : null;
+        const isValidChain = detectedChainId === null || detectedChainId === chainId;
+
+        parsed.push({
+          address: address as Address,
+          chainId: detectedChainId,
+          chainName,
+          isValidChain,
+          input: line,
+        });
+      }
+    }
+
+    return parsed;
+  };
+
+  // Update parsed Safes when input changes
+  const handleInputChange = (value: string) => {
+    setSafeToAdd(value);
+    setParsedSafes(parseSafeInput(value));
+    setAddSafeError('');
+  };
+
   const handleAddSafe = async () => {
     setAddSafeError('');
 
     // Validate input
     if (!safeToAdd.trim()) {
-      setAddSafeError('Please enter a Safe address or URL');
+      setAddSafeError('Please enter Safe address(es) or URL(s)');
       return;
     }
 
-    // Extract address from URL, chain prefix, or direct address
-    const extractedAddress = extractSafeAddress(safeToAdd);
-    console.log('🔍 Debug extractSafeAddress:', {
-      input: safeToAdd,
-      extracted: extractedAddress,
-      isValid: extractedAddress ? isAddress(extractedAddress) : false
-    });
+    const safesToAdd = parseSafeInput(safeToAdd);
 
-    if (!extractedAddress || !isAddress(extractedAddress)) {
-      setAddSafeError('Invalid Safe address or URL. Accepted formats: URL, chain:address, or 0x...');
+    if (safesToAdd.length === 0) {
+      setAddSafeError('No valid Safe addresses found. Accepted formats: URL, chain:address, or 0x...');
       return;
     }
 
-    // Check if Safe is already in the group
-    if (safes.some(s => s.safeAddress.toLowerCase() === extractedAddress.toLowerCase())) {
-      setAddSafeError('This Safe is already in the group');
+    // Check for invalid chains
+    const invalidChainSafes = safesToAdd.filter(s => !s.isValidChain);
+    if (invalidChainSafes.length > 0) {
+      setAddSafeError(`Cannot add Safes from different chains. Please ensure all Safes are on ${CHAIN_ID_TO_NAME[chainId || 100]} (chain ID ${chainId || 100})`);
       return;
     }
+
+    // Check for duplicates with existing Safes
+    const existingSafeAddresses = new Set(safes.map(s => s.safeAddress.toLowerCase()));
+    const newSafes = safesToAdd.filter(s => !existingSafeAddresses.has(s.address.toLowerCase()));
+    const duplicates = safesToAdd.filter(s => existingSafeAddresses.has(s.address.toLowerCase()));
+
+    if (duplicates.length > 0) {
+      toast.error(`${duplicates.length} Safe(s) already in the group`, { duration: 3000 });
+    }
+
+    if (newSafes.length === 0) {
+      setAddSafeError('All entered Safes are already in the group');
+      return;
+    }
+
+    // Initialize progress tracking
+    setSafeProgress(newSafes.map(s => ({ address: s.address, status: 'pending' as const })));
 
     setIsAddingSafe(true);
     try {
-      const hash = await createModuleForSafe(extractedAddress as Address);
-      if (hash) {
+      const addresses = newSafes.map(s => s.address);
+      const { successful, failed } = await createModulesForSafes(addresses, (current, total, address, status) => {
+        setSafeProgress(prev => prev.map(p =>
+          p.address.toLowerCase() === address.toLowerCase()
+            ? { ...p, status: status === 'pending' ? 'processing' : status }
+            : p
+        ));
+      });
+
+      if (successful.length > 0) {
         setSafeToAdd('');
-        toast.success(`Safe ${extractedAddress} added to group!`);
+        setParsedSafes([]);
+        setSafeProgress([]);
         // Refetch safes list after a delay
         setTimeout(() => {
           refetchSafes();
         }, 3000);
       }
+
+      if (failed.length > 0 && successful.length === 0) {
+        setAddSafeError(`Failed to add ${failed.length} Safe(s)`);
+      }
     } catch (error) {
-      console.error('Error adding Safe to group:', error);
-      setAddSafeError('Failed to add Safe to group');
+      console.error('Error adding Safes to group:', error);
+      setAddSafeError('Failed to add Safes to group');
     } finally {
       setIsAddingSafe(false);
     }
@@ -734,32 +811,101 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
         <div className="flex items-center gap-2 mb-3">
           <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-          <span className="text-sm font-medium text-gray-900 dark:text-white">Add Safe to Group</span>
+          <span className="text-sm font-medium text-gray-900 dark:text-white">Add Safes to Group</span>
         </div>
 
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={safeToAdd}
-            onChange={(e) => setSafeToAdd(e.target.value)}
-            placeholder="Paste Safe address or URL here..."
-            className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500"
-            disabled={isAddingSafe || isCreatingModule}
-          />
+        <div className="space-y-3">
+          <div>
+            <textarea
+              value={safeToAdd}
+              onChange={(e) => handleInputChange(e.target.value)}
+              placeholder="Paste Safe addresses or URLs (one per line or comma-separated)
+Example:
+gno:0x1234...
+https://app.safe.global/home?safe=gno:0x5678..."
+              rows={3}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500 font-mono"
+              disabled={isAddingSafe || isCreatingModule}
+            />
+          </div>
+
+          {/* Parsed Safes Preview */}
+          {parsedSafes.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Found {parsedSafes.length} Safe(s):
+              </div>
+              {parsedSafes.map((safe, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 px-2 py-1 text-xs bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
+                >
+                  <span className="font-mono text-gray-700 dark:text-gray-300 truncate flex-1">
+                    {safe.address.slice(0, 10)}...{safe.address.slice(-8)}
+                  </span>
+                  {safe.chainName && (
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-xs font-medium",
+                      safe.isValidChain
+                        ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                        : "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300"
+                    )}>
+                      {safe.chainName}
+                    </span>
+                  )}
+                  {!safe.isValidChain && safe.chainId !== null && (
+                    <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Progress tracking during batch add */}
+          {isAddingSafe && safeProgress.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Adding Safes ({safeProgress.filter(p => p.status === 'success').length}/{safeProgress.length} completed):
+              </div>
+              {safeProgress.map((progress, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 px-2 py-1 text-xs bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
+                >
+                  <span className="font-mono text-gray-700 dark:text-gray-300 truncate flex-1">
+                    {progress.address.slice(0, 10)}...{progress.address.slice(-8)}
+                  </span>
+                  {progress.status === 'pending' && (
+                    <span className="text-gray-500">Pending...</span>
+                  )}
+                  {progress.status === 'processing' && (
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  )}
+                  {progress.status === 'success' && (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  )}
+                  {progress.status === 'error' && (
+                    <X className="h-4 w-4 text-red-600" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           <button
             onClick={handleAddSafe}
-            disabled={isAddingSafe || isCreatingModule || !safeToAdd.trim()}
-            className="px-4 py-2 text-sm bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+            disabled={isAddingSafe || isCreatingModule || !safeToAdd.trim() || parsedSafes.length === 0}
+            className="w-full px-4 py-2 text-sm bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isAddingSafe || isCreatingModule ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Adding...
+                Adding {parsedSafes.length > 1 ? `${parsedSafes.length} Safes` : 'Safe'}...
               </>
             ) : (
               <>
                 <Plus className="h-4 w-4" />
-                Add
+                Add {parsedSafes.length > 1 ? `${parsedSafes.length} Safes` : parsedSafes.length === 1 ? 'Safe' : 'Safes'}
               </>
             )}
           </button>
@@ -775,8 +921,11 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
             ℹ️ How it works
           </summary>
           <ol className="list-decimal list-inside mt-2 space-y-1 text-xs text-gray-600 dark:text-gray-400 pl-4">
-            <li>Module created for the Safe</li>
-            <li>Safe owners enable module via Safe interface</li>
+            <li>Paste multiple Safe addresses (one per line or comma-separated)</li>
+            <li>Chain is detected from URL or prefix (gno:, eth:, etc.)</li>
+            <li>Red badge warns if Safe chain doesn't match connected chain</li>
+            <li>Module created for each Safe sequentially</li>
+            <li>Safe owners enable modules via Safe interface</li>
             <li>Owners synchronized across group</li>
           </ol>
         </details>
