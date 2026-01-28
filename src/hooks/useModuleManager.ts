@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAccount, useChainId, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { Address } from 'viem';
+import { Address, encodeFunctionData } from 'viem';
 import { SafeModuleManagerABI } from '@/lib/abis';
 import { getContractAddresses } from '@/lib/contracts';
 import toast from 'react-hot-toast';
@@ -58,9 +58,92 @@ export function useModuleManager(managerAddress?: Address) {
     }
   };
 
-  // Batch create modules for multiple Safes
-  // TODO: Implement true multicall for single-transaction batch processing
-  // Currently uses sequential calls - consider Multicall3 for production
+  // Batch create modules using Multicall3 (single transaction)
+  const createModulesForSafesBatch = async (
+    safeAddresses: Address[]
+  ): Promise<{ hash: `0x${string}` | null; successful: Address[]; failed: Address[] }> => {
+    if (!address) {
+      toast.error('Conecte sua wallet primeiro');
+      return { hash: null, successful: [], failed: [] };
+    }
+
+    if (safeAddresses.length === 0) {
+      return { hash: null, successful: [], failed: [] };
+    }
+
+    setIsLoading(true);
+    try {
+      // Multicall3 address (same on all chains)
+      const multicall3Address = '0xcA11bde05977b3631167028862bE2a173976CA11';
+
+      // Encode calls
+      const calls = safeAddresses.map((safeAddress) => ({
+        target: effectiveManagerAddress,
+        allowFailure: true,
+        callData: encodeFunctionData({
+          abi: SafeModuleManagerABI,
+          functionName: 'createModuleForSafe',
+          args: [safeAddress],
+        }),
+      }));
+
+      // Execute multicall
+      const hash = await writeContractAsync({
+        address: multicall3Address,
+        abi: [
+          {
+            name: 'aggregate3',
+            type: 'function',
+            stateMutability: 'payable',
+            inputs: [
+              {
+                name: 'calls',
+                type: 'tuple[]',
+                components: [
+                  { name: 'target', type: 'address' },
+                  { name: 'allowFailure', type: 'bool' },
+                  { name: 'callData', type: 'bytes' },
+                ],
+              },
+            ],
+            outputs: [
+              {
+                name: 'returnData',
+                type: 'tuple[]',
+                components: [
+                  { name: 'success', type: 'bool' },
+                  { name: 'returnData', type: 'bytes' },
+                ],
+              },
+            ],
+          },
+        ],
+        functionName: 'aggregate3',
+        args: [calls],
+      });
+
+      toast.success(`Batch transaction sent! Creating ${safeAddresses.length} modules...`);
+
+      return {
+        hash,
+        successful: safeAddresses, // All will be processed in single tx
+        failed: [],
+      };
+    } catch (error: any) {
+      console.error('Error in batch create:', error);
+      toast.error(`Batch creation failed: ${error.message || 'Unknown error'}`);
+      return {
+        hash: null,
+        successful: [],
+        failed: safeAddresses,
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Batch create modules for multiple Safes (sequential - fallback)
+  // TODO: Deprecated - use createModulesForSafesBatch for true multicall
   const createModulesForSafes = async (
     safeAddresses: Address[],
     onProgress?: (current: number, total: number, address: Address, status: 'pending' | 'success' | 'error') => void
@@ -312,7 +395,8 @@ export function useModuleManager(managerAddress?: Address) {
 
     // Functions
     createModuleForSafe,
-    createModulesForSafes,
+    createModulesForSafes, // Sequential (deprecated)
+    createModulesForSafesBatch, // Multicall3 - single transaction
     addModuleForSafe,
     setSafeToModule,
 

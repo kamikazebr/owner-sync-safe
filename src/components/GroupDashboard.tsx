@@ -223,7 +223,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
   const [safeProgress, setSafeProgress] = useState<SafeProgress[]>([]);
 
   // Use group's manager address
-  const { createModuleForSafe, createModulesForSafes, isLoading: isCreatingModule } = useModuleManager(group?.manager as Address);
+  const { createModuleForSafe, createModulesForSafes, createModulesForSafesBatch, isLoading: isCreatingModule } = useModuleManager(group?.manager as Address);
   const { safes, isLoading: isLoadingSafes, refetch: refetchSafes } = useGroupSafes(group?.manager as Address, chainId || 100);
 
   // Calculate active Safes count for button states
@@ -436,6 +436,7 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
 
     for (const line of lines) {
       const result = extractSafeAddressWithChain(line);
+
       if (result) {
         const { address, chainId: detectedChainId } = result;
         const chainName = detectedChainId ? CHAIN_ID_TO_NAME[detectedChainId] || 'Unknown' : null;
@@ -504,13 +505,19 @@ export function GroupDashboard({ groupId }: GroupDashboardProps) {
     setIsAddingSafe(true);
     try {
       const addresses = newSafes.map(s => s.address);
-      const { successful, failed } = await createModulesForSafes(addresses, (current, total, address, status) => {
-        setSafeProgress(prev => prev.map(p =>
-          p.address.toLowerCase() === address.toLowerCase()
-            ? { ...p, status: status === 'pending' ? 'processing' : status }
-            : p
-        ));
-      });
+
+      // Use multicall batch for single transaction
+      setSafeProgress(prev => prev.map(p => ({ ...p, status: 'processing' as const })));
+
+      const { hash, successful, failed } = await createModulesForSafesBatch(addresses);
+
+      if (hash) {
+        // Update all to success
+        setSafeProgress(prev => prev.map(p => ({ ...p, status: 'success' as const })));
+      } else {
+        // Update all to error if batch failed
+        setSafeProgress(prev => prev.map(p => ({ ...p, status: 'error' as const })));
+      }
 
       if (successful.length > 0) {
         setSafeToAdd('');
@@ -833,31 +840,50 @@ https://app.safe.global/home?safe=gno:0x5678..."
           {parsedSafes.length > 0 && (
             <div className="space-y-1">
               <div className="text-xs text-gray-600 dark:text-gray-400">
-                Found {parsedSafes.length} Safe(s):
+                Found {parsedSafes.length} Safe(s)
+                {(() => {
+                  const existingSafeAddresses = new Set(safes.map(s => s.safeAddress.toLowerCase()));
+                  const newCount = parsedSafes.filter(s => !existingSafeAddresses.has(s.address.toLowerCase())).length;
+                  const dupCount = parsedSafes.length - newCount;
+                  if (dupCount > 0) {
+                    return <span> ({newCount} new, {dupCount} already in group)</span>;
+                  }
+                  return null;
+                })()}:
               </div>
-              {parsedSafes.map((safe, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 px-2 py-1 text-xs bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
-                >
-                  <span className="font-mono text-gray-700 dark:text-gray-300 truncate flex-1">
-                    {safe.address.slice(0, 10)}...{safe.address.slice(-8)}
-                  </span>
-                  {safe.chainName && (
-                    <span className={cn(
-                      "px-2 py-0.5 rounded text-xs font-medium",
-                      safe.isValidChain
-                        ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
-                        : "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300"
-                    )}>
-                      {safe.chainName}
+              {parsedSafes.map((safe, idx) => {
+                const existingSafeAddresses = new Set(safes.map(s => s.safeAddress.toLowerCase()));
+                const alreadyExists = existingSafeAddresses.has(safe.address.toLowerCase());
+
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 px-2 py-1 text-xs bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
+                  >
+                    <span className="font-mono text-gray-700 dark:text-gray-300 truncate flex-1">
+                      {safe.address.slice(0, 10)}...{safe.address.slice(-8)}
                     </span>
-                  )}
-                  {!safe.isValidChain && safe.chainId !== null && (
-                    <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  )}
-                </div>
-              ))}
+                    {alreadyExists && (
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                        Already in group
+                      </span>
+                    )}
+                    {safe.chainName && (
+                      <span className={cn(
+                        "px-2 py-0.5 rounded text-xs font-medium",
+                        safe.isValidChain
+                          ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                          : "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300"
+                      )}>
+                        {safe.chainName}
+                      </span>
+                    )}
+                    {!safe.isValidChain && safe.chainId !== null && (
+                      <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
