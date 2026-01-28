@@ -99,9 +99,8 @@ export function usePendingSetup(chainId?: number) {
             continue;
           }
 
-          // Optional: Check if module is enabled (for informational purposes)
-          // We show pending setups regardless of enabled status, since user needs
-          // to enable the module first before they can configure it
+          // Check if module is already enabled on-chain
+          // This prevents showing invitations that have been accepted but subgraph hasn't indexed yet
           if (publicClient) {
             try {
               const isEnabled = await publicClient.readContract({
@@ -117,9 +116,18 @@ export function usePendingSetup(chainId?: number) {
                 safeAddress: safeInfo.safeAddress,
                 isEnabled,
               });
+
+              // Skip this module if it's already enabled
+              if (isEnabled) {
+                console.log('[usePendingSetup] Module already enabled, skipping invitation:', {
+                  groupId: group.groupId,
+                  groupName: group.name,
+                });
+                continue;
+              }
             } catch (error) {
               console.warn('[usePendingSetup] Failed to verify module on-chain:', error);
-              // Continue with subgraph data
+              // Continue with subgraph data if verification fails
             }
           }
 
