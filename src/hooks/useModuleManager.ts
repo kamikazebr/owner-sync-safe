@@ -58,6 +58,62 @@ export function useModuleManager(managerAddress?: Address) {
     }
   };
 
+  // Batch create modules for multiple Safes
+  // TODO: Implement true multicall for single-transaction batch processing
+  // Currently uses sequential calls - consider Multicall3 for production
+  const createModulesForSafes = async (
+    safeAddresses: Address[],
+    onProgress?: (current: number, total: number, address: Address, status: 'pending' | 'success' | 'error') => void
+  ): Promise<{ successful: Address[]; failed: Address[] }> => {
+    if (!address) {
+      toast.error('Conecte sua wallet primeiro');
+      return { successful: [], failed: [] };
+    }
+
+    const successful: Address[] = [];
+    const failed: Address[] = [];
+
+    setIsLoading(true);
+    try {
+      for (let i = 0; i < safeAddresses.length; i++) {
+        const safeAddress = safeAddresses[i];
+        onProgress?.(i + 1, safeAddresses.length, safeAddress, 'pending');
+
+        try {
+          const hash = await writeContractAsync({
+            address: effectiveManagerAddress,
+            abi: SafeModuleManagerABI,
+            functionName: 'createModuleForSafe',
+            args: [safeAddress],
+          });
+
+          if (hash) {
+            successful.push(safeAddress);
+            onProgress?.(i + 1, safeAddresses.length, safeAddress, 'success');
+          } else {
+            failed.push(safeAddress);
+            onProgress?.(i + 1, safeAddresses.length, safeAddress, 'error');
+          }
+        } catch (error: any) {
+          console.error(`Error creating module for ${safeAddress}:`, error);
+          failed.push(safeAddress);
+          onProgress?.(i + 1, safeAddresses.length, safeAddress, 'error');
+        }
+      }
+
+      if (successful.length > 0) {
+        toast.success(`${successful.length} Safe(s) adicionado(s) com sucesso!`);
+      }
+      if (failed.length > 0) {
+        toast.error(`${failed.length} Safe(s) falharam ao adicionar`);
+      }
+
+      return { successful, failed };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Add module for calling Safe (Safe must call this)
   const addModuleForSafe = async () => {
     if (!address) {
@@ -256,6 +312,7 @@ export function useModuleManager(managerAddress?: Address) {
 
     // Functions
     createModuleForSafe,
+    createModulesForSafes,
     addModuleForSafe,
     setSafeToModule,
 
