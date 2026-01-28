@@ -3,6 +3,10 @@
   "chainId": 100,
   "SyncGroupRegistry": {
     "address": "0x1d9aafd517d85450bD85169eF291298a016da202",
-    "startBlock": 42680229
+    "startBlock": 44376900
+  },
+  "graft": {
+    "base": "QmSejFiUU41RPdcrxM1tsyPhj1zyf5pVbL73TC4yY6sHQw",
+    "block": 44376900
   }
 }

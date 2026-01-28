@@ -5,9 +5,9 @@ import { GraphQLClient } from 'graphql-request';
 // Production: Gateway endpoints (requires API key)
 const SUBGRAPH_URLS_DEV: Record<number, string> = {
   // Gnosis Chain
-  100: 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-gnosis/v0.1.1',
+  100: 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-gnosis/v0.1.3',
   // Base
-  8453: 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-base/v0.1.1',
+  8453: 'https://api.studio.thegraph.com/query/29898/owner-sync-safe-base/v0.1.3',
 };
 
 const SUBGRAPH_URLS_PROD: Record<number, string> = {

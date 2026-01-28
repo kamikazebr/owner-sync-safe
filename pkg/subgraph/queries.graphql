@@ -1,0 +1,326 @@
+# ==============================================================================
+# OWNER SYNC SAFE - EXAMPLE QUERIES
+# ==============================================================================
+# Copy these queries into Graph Studio Playground to explore the subgraph data
+#
+# Graph Studio: https://thegraph.com/studio/subgraph/owner-sync-safe-gnosis/
+# Endpoint: https://api.studio.thegraph.com/query/29898/owner-sync-safe-gnosis/v0.1.2
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Subgraph Metadata (Check indexing status)
+# ------------------------------------------------------------------------------
+query SubgraphMeta {
+  _meta {
+    block {
+      number
+      hash
+      timestamp
+    }
+    deployment
+    hasIndexingErrors
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 2. List All Groups
+# ------------------------------------------------------------------------------
+query AllGroups {
+  syncGroups(first: 10, orderBy: createdAt, orderDirection: desc) {
+    id
+    groupId
+    name
+    owner
+    active
+    createdAt
+    manager {
+      id
+      totalModules
+    }
+    safes {
+      safe
+      isActive
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 3. Group Details (Replace groupId "1" with your group)
+# ------------------------------------------------------------------------------
+query GroupDetails {
+  syncGroup(id: "1") {
+    id
+    groupId
+    name
+    owner
+    active
+    createdAt
+    updatedAt
+    manager {
+      id
+      totalModules
+      moduleTemplate
+    }
+    safes {
+      id
+      safe
+      isActive
+      addedAt
+      removedAt
+      module {
+        id
+        isActive
+        isConfigured
+        threshold
+        autoSyncEnabled
+      }
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 4. Find Modules by Safe Address (Replace with actual Safe address)
+# ------------------------------------------------------------------------------
+query ModulesBySafe {
+  managedSafeModules(
+    where: { safe: "0x9a17de1f0cad0c592f656410997e4b685d339029" }
+  ) {
+    id
+    safe
+    isActive
+    isConfigured
+    threshold
+    autoSyncEnabled
+    requireFullSync
+    maxSyncOwners
+    createdAt
+    manager {
+      id
+      group {
+        name
+        groupId
+      }
+    }
+    owners(where: { isActive: true }) {
+      owner
+      addedAt
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 5. Recent Owner Changes (Last 20)
+# ------------------------------------------------------------------------------
+query RecentOwnerChanges {
+  ownerChanges(
+    first: 20
+    orderBy: timestamp
+    orderDirection: desc
+  ) {
+    id
+    changeType
+    oldOwner
+    newOwner
+    threshold
+    timestamp
+    blockNumber
+    transactionHash
+    module {
+      id
+      safe
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 6. Owner Sync Events (Last 10)
+# ------------------------------------------------------------------------------
+query RecentSyncEvents {
+  ownerSyncEvents(
+    first: 10
+    orderBy: timestamp
+    orderDirection: desc
+  ) {
+    id
+    ownerCount
+    isComplete
+    timestamp
+    blockNumber
+    transactionHash
+    module {
+      safe
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 7. Cross-Module Operations
+# ------------------------------------------------------------------------------
+query CrossModuleCalls {
+  crossModuleCalls(
+    first: 10
+    orderBy: timestamp
+    orderDirection: desc
+  ) {
+    id
+    caller
+    modulesCount
+    timestamp
+    blockNumber
+    transactionHash
+    manager {
+      group {
+        name
+      }
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 8. Operation Failures (For debugging)
+# ------------------------------------------------------------------------------
+query OperationFailures {
+  moduleOperationFailures(
+    first: 10
+    orderBy: timestamp
+    orderDirection: desc
+  ) {
+    id
+    operation
+    errorData
+    timestamp
+    blockNumber
+    transactionHash
+    safe
+    module {
+      id
+    }
+    manager {
+      group {
+        name
+      }
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 9. Active Modules in a Group (Replace groupId "1")
+# ------------------------------------------------------------------------------
+query ActiveModulesInGroup {
+  syncGroup(id: "1") {
+    name
+    safes(where: { isActive: true }) {
+      safe
+      module {
+        id
+        isActive
+        isConfigured
+        threshold
+        owners(where: { isActive: true }) {
+          owner
+        }
+      }
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 10. Module Configuration Details (Replace module address)
+# ------------------------------------------------------------------------------
+query ModuleConfig {
+  managedSafeModule(id: "0xf6264251bee7df4bddd3e2bff44ef634fab57608") {
+    id
+    safe
+    isActive
+    isConfigured
+    threshold
+    autoSyncEnabled
+    requireFullSync
+    maxSyncOwners
+    createdAt
+    manager {
+      id
+    }
+    owners(where: { isActive: true }) {
+      owner
+      addedAt
+    }
+    thresholdChanges(orderBy: timestamp, orderDirection: desc, first: 5) {
+      oldThreshold
+      newThreshold
+      timestamp
+      transactionHash
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 11. Search Groups by Name
+# ------------------------------------------------------------------------------
+query SearchGroups {
+  syncGroups(
+    where: { name_contains_nocase: "gnosis" }
+    first: 5
+  ) {
+    id
+    groupId
+    name
+    owner
+    active
+    manager {
+      totalModules
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 12. Recent Activity (All events in last 24h)
+# ------------------------------------------------------------------------------
+query RecentActivity($since: BigInt!) {
+  ownerChanges(
+    where: { timestamp_gte: $since }
+    orderBy: timestamp
+    orderDirection: desc
+    first: 50
+  ) {
+    id
+    changeType
+    timestamp
+    module {
+      safe
+    }
+  }
+  ownerSyncEvents(
+    where: { timestamp_gte: $since }
+    orderBy: timestamp
+    orderDirection: desc
+    first: 50
+  ) {
+    id
+    ownerCount
+    timestamp
+    module {
+      safe
+    }
+  }
+}
+# Variables: { "since": "1738000000" }
+
+# ------------------------------------------------------------------------------
+# 13. Manager Statistics
+# ------------------------------------------------------------------------------
+query ManagerStats {
+  safeModuleManagers {
+    id
+    totalModules
+    group {
+      name
+      groupId
+    }
+    modules(where: { isActive: true }) {
+      id
+      safe
+      isConfigured
+    }
+  }
+}
