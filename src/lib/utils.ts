@@ -212,7 +212,6 @@ export function extractSafeAddressWithChain(input: string): { address: string; c
       if (safeParam.includes(':')) {
         const [prefix, address] = safeParam.split(':', 2);
         if (isValidAddress(address)) {
-          chainPrefix = prefix;
           return {
             address,
             chainId: CHAIN_PREFIX_TO_ID[prefix.toLowerCase()] ?? null,
